@@ -32,3 +32,6 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Exclude Gradle wrapper binary for platforms that disallow binaries
+gradle/wrapper/gradle-wrapper.jar
