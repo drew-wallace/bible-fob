@@ -12,10 +12,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val deepLinkUri = intent?.data
-        if (deepLinkUri != null && !isSupportedPassageUri(deepLinkUri)) {
-            openInExternalBrowser(deepLinkUri)
-            finish()
+        if (!handleIncomingDeepLink(intent)) {
             return
         }
 
@@ -26,15 +23,46 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+
+        if (!handleIncomingDeepLink(intent)) {
+            return
+        }
+    }
+
+    private fun handleIncomingDeepLink(intent: Intent?): Boolean {
+        val deepLinkUri = intent?.data ?: return true
+        if (isSupportedPassageUri(deepLinkUri)) {
+            return true
+        }
+
+        openInExternalBrowser(deepLinkUri)
+        finish()
+        return false
+    }
+
     private fun isSupportedPassageUri(uri: Uri): Boolean {
         return uri.path == "/passage"
     }
 
     private fun openInExternalBrowser(uri: Uri) {
-        startActivity(
-            Intent(Intent.ACTION_VIEW, uri).apply {
-                addCategory(Intent.CATEGORY_BROWSABLE)
-            }
-        )
+        val browserIntent = Intent(Intent.ACTION_VIEW, uri).apply {
+            addCategory(Intent.CATEGORY_BROWSABLE)
+        }
+
+        val externalBrowserActivity = packageManager
+            .queryIntentActivities(browserIntent, 0)
+            .firstOrNull { it.activityInfo.packageName != packageName }
+
+        if (externalBrowserActivity != null) {
+            browserIntent.setClassName(
+                externalBrowserActivity.activityInfo.packageName,
+                externalBrowserActivity.activityInfo.name
+            )
+        }
+
+        startActivity(browserIntent)
     }
 }

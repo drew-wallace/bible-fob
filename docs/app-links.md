@@ -2,8 +2,8 @@
 
 The app declares verified app links (`android:autoVerify="true"`) for:
 
-- `https://www.biblegateway.com/passage`
-- `https://biblegateway.com/passage`
+- `https://www.biblegateway.com/*`
+- `https://biblegateway.com/*`
 
 Only the `/passage` route is handled in-app. Other incoming deep links are immediately redirected to an external browser.
 

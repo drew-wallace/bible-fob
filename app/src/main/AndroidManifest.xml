@@ -28,7 +28,6 @@
 
                 <data
                     android:host="www.biblegateway.com"
-                    android:path="/passage"
                     android:scheme="https" />
             </intent-filter>
             <intent-filter android:autoVerify="true">
@@ -39,7 +38,6 @@
 
                 <data
                     android:host="biblegateway.com"
-                    android:path="/passage"
                     android:scheme="https" />
             </intent-filter>
         </activity>
