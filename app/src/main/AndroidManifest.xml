@@ -16,6 +16,32 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!--
+              Verified app links require a valid Digital Asset Links file hosted on the domain:
+              https://www.biblegateway.com/.well-known/assetlinks.json (and optionally biblegateway.com).
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="www.biblegateway.com"
+                    android:path="/passage"
+                    android:scheme="https" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="biblegateway.com"
+                    android:path="/passage"
+                    android:scheme="https" />
+            </intent-filter>
         </activity>
     </application>
 
