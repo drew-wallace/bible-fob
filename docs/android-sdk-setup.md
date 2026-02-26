@@ -57,3 +57,17 @@ If those work, run:
 ```bash
 ./gradlew test
 ```
+
+## Project auto-detection
+
+This project now attempts to auto-generate `local.properties` during Gradle settings evaluation when:
+
+- `local.properties` is missing, and
+- one of these SDK locations exists and contains `platform-tools`:
+  - `$ANDROID_HOME`
+  - `$ANDROID_SDK_ROOT`
+  - `$HOME/Android/Sdk`
+  - `/opt/android-sdk`
+  - `/usr/local/android-sdk`
+
+If none are found, Gradle prints a clear setup hint and you can still set `sdk.dir` manually as shown above.
