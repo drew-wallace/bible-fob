@@ -96,6 +96,15 @@ class SearchQueryParserTest {
     }
 
     @Test
+    fun `rejects chapter spans with invalid start chapter`() {
+        val result = parser.parseFromUriString(
+            "https://example.com/open?search=Jn%200-1"
+        )
+
+        assertEquals(emptyList<String>(), result)
+    }
+
+    @Test
     fun `rejects chapter spans with invalid end chapter`() {
         val result = parser.parseFromUriString(
             "https://example.com/open?search=Jn%201-22"

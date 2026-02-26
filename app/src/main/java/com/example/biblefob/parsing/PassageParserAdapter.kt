@@ -28,6 +28,7 @@ class PassageParserAdapter {
                     return null
                 }
 
+                getLastVerseInChapter(normalizedBook, chapter) ?: return null
                 val endChapterLastVerse = getLastVerseInChapter(normalizedBook, endChapter) ?: return null
                 "$chapter:1-$endChapter:$endChapterLastVerse"
             }
