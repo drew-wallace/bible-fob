@@ -119,6 +119,21 @@ CLASSPATH="\\\"\\\""
 
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then
+    if [ -x "$JAVA_HOME/bin/java" ] ; then
+        java_major_version=$("$JAVA_HOME/bin/java" -version 2>&1 | sed -n '1s/.*version "\(.*\)".*/\1/p' | awk -F. '{ print $1 }')
+        if [ -n "$java_major_version" ] && [ "$java_major_version" -ge 25 ] ; then
+            for fallback_java_home in \
+                "$HOME/.local/share/mise/installs/java/21.0.2" \
+                "$HOME/.local/share/mise/installs/java/17.0.2"
+            do
+                if [ -x "$fallback_java_home/bin/java" ] ; then
+                    warn "JAVA_HOME uses Java $java_major_version, falling back to $fallback_java_home for Gradle compatibility."
+                    JAVA_HOME=$fallback_java_home
+                    break
+                fi
+            done
+        fi
+    fi
     if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
         # IBM's JDK on AIX uses strange locations for the executables
         JAVACMD=$JAVA_HOME/jre/sh/java
