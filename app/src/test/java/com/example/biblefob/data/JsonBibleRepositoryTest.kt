@@ -54,6 +54,32 @@ class JsonBibleRepositoryTest {
     }
 
     @Test
+    fun `expands chapter-only reference from available chapter data`() {
+        val repository = JsonBibleRepository(
+            wholeBibleJson = """
+            {
+              "Romans": {
+                "8": {
+                  "2": "because through Christ Jesus",
+                  "1": "Therefore, there is now no condemnation"
+                }
+              }
+            }
+            """.trimIndent()
+        )
+
+        val verses = repository.getVerses("Romans 8")
+
+        assertEquals(listOf("8:1", "8:2"), verses.map { "${it.chapter}:${it.number}" })
+    }
+
+    @Test
+    fun `rejects descending ranges`() {
+        assertEquals(null, NormalizedReferenceParser.parse("John 3:19-16"))
+        assertEquals(null, NormalizedReferenceParser.parse("John 3:5-2:10"))
+    }
+
+    @Test
     fun `falls back to per book loader when whole bible json is absent`() {
         val repository = JsonBibleRepository(
             perBookJsonLoader = { book ->

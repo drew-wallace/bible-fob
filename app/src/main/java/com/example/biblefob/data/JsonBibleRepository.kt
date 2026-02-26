@@ -30,22 +30,21 @@ class JsonBibleRepository(
         val verses = mutableListOf<Verse>()
         for (chapter in range.startChapter..range.endChapter) {
             val verseStart = if (chapter == range.startChapter) range.startVerse else 1
-            val verseEnd = if (chapter == range.endChapter) {
-                range.endVerse
-            } else {
-                getLastVerse(range.startBook, chapter)
-            }
+            val verseEnd = if (chapter == range.endChapter) range.endVerse else Int.MAX_VALUE
 
-            if (verseEnd == null || verseEnd < verseStart) {
+            if (verseEnd < verseStart) {
                 continue
             }
 
-            for (verseNumber in verseStart..verseEnd) {
+            val verseNumbers = getVerseNumbers(range.startBook, chapter)
+                .filter { it in verseStart..verseEnd }
+
+            verseNumbers.forEach { verseNumber ->
                 val text = getVerseText(
                     book = range.startBook,
                     chapter = chapter,
                     verse = verseNumber
-                ) ?: continue
+                ) ?: return@forEach
                 verses += Verse(
                     book = range.startBook,
                     chapter = chapter,
@@ -58,12 +57,13 @@ class JsonBibleRepository(
         return sortCanonically(verses)
     }
 
-    private fun getLastVerse(book: Book, chapter: Int): Int? {
-        val chapterJson = getChapterJson(book, chapter) ?: return null
+    private fun getVerseNumbers(book: Book, chapter: Int): List<Int> {
+        val chapterJson = getChapterJson(book, chapter) ?: return emptyList()
         return chapterJson.keys()
             .asSequence()
             .mapNotNull { it.toIntOrNull() }
-            .maxOrNull()
+            .sorted()
+            .toList()
     }
 
     private fun getVerseText(book: Book, chapter: Int, verse: Int): String? {
@@ -118,6 +118,9 @@ object NormalizedReferenceParser {
             if (!isPositive(startChapter, startVerse, endChapter, endVerse)) {
                 return null
             }
+            if (endChapter < startChapter || (endChapter == startChapter && endVerse < startVerse)) {
+                return null
+            }
             return PassageRange(
                 startBook = book,
                 startChapter = startChapter,
@@ -134,6 +137,9 @@ object NormalizedReferenceParser {
             val startVerse = match.groupValues[3].toIntOrNull() ?: return null
             val endVerse = match.groupValues[4].toIntOrNull() ?: startVerse
             if (!isPositive(chapter, startVerse, endVerse)) {
+                return null
+            }
+            if (endVerse < startVerse) {
                 return null
             }
             return PassageRange(
