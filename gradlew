@@ -88,6 +88,18 @@ APP_BASE_NAME=${0##*/}
 # Discard cd standard output in case $CDPATH is set (https://github.com/gradle/gradle/issues/25036)
 APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s\n' "$PWD" ) || exit
 
+# Attempt to auto-discover Android SDK location for non-interactive/local environments.
+if [ -z "${ANDROID_HOME:-}" ] && [ -z "${ANDROID_SDK_ROOT:-}" ]; then
+    for CANDIDATE in "$APP_HOME/android-sdk" "$HOME/Android/Sdk" "/usr/local/share/android-sdk" "/opt/android-sdk" "/workspace/android-sdk"; do
+        if [ -d "$CANDIDATE/platforms" ] && [ -d "$CANDIDATE/build-tools" ]; then
+            ANDROID_HOME="$CANDIDATE"
+            ANDROID_SDK_ROOT="$CANDIDATE"
+            export ANDROID_HOME ANDROID_SDK_ROOT
+            break
+        fi
+    done
+fi
+
 # Use the maximum available, or set MAX_FD != -1 to use that value.
 MAX_FD=maximum
 
