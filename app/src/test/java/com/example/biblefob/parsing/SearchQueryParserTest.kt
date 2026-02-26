@@ -68,6 +68,43 @@ class SearchQueryParserTest {
     }
 
     @Test
+    fun `supports chapter spans`() {
+        val result = parser.parseFromUriString(
+            "https://example.com/open?search=Jn%201-2"
+        )
+
+        assertEquals(listOf("John 1:1-2:25"), result)
+    }
+
+    @Test
+    fun `supports chapter spans for single chapter books`() {
+        val result = parser.parseFromUriString(
+            "https://example.com/open?search=Jude%201-1"
+        )
+
+        assertEquals(listOf("Jude 1:1-1:25"), result)
+    }
+
+
+    @Test
+    fun `supports chapter spans for third john`() {
+        val result = parser.parseFromUriString(
+            "https://example.com/open?search=3%20Jn%201-1"
+        )
+
+        assertEquals(listOf("3 John 1:1-1:15"), result)
+    }
+
+    @Test
+    fun `rejects chapter spans with invalid end chapter`() {
+        val result = parser.parseFromUriString(
+            "https://example.com/open?search=Jn%201-22"
+        )
+
+        assertEquals(emptyList<String>(), result)
+    }
+
+    @Test
     fun `returns empty list for invalid or missing search param`() {
         assertEquals(emptyList<String>(), parser.parseFromUriString("https://example.com/open"))
         assertEquals(emptyList<String>(), parser.parseFromUriString("https://example.com/open?search="))
