@@ -12,11 +12,26 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -51,48 +66,132 @@ sealed interface HomeScreenUiState {
 fun HomeScreen(
     parsedReferenceChunks: List<String> = emptyList(),
     uiState: HomeScreenUiState = HomeScreenUiState.Empty,
+    selectedVersion: String? = null,
+    supportedVersions: List<String> = emptyList(),
     onVersionSelected: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        when (uiState) {
-            HomeScreenUiState.Loading -> CenterMessage {
-                CircularProgressIndicator()
-            }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
-            HomeScreenUiState.Empty -> {
-                val message = if (parsedReferenceChunks.isEmpty()) {
-                    "No references found."
-                } else {
-                    "No verses found for ${parsedReferenceChunks.size} parsed reference(s)."
-                }
-                CenterMessage {
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-
-            is HomeScreenUiState.InvalidReference -> CenterMessage {
-                Text(
-                    text = uiState.message,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            is HomeScreenUiState.UnsupportedVersion -> CenterMessage {
-                UnsupportedVersionMessage(
-                    requestedVersion = uiState.requestedVersion,
-                    supportedVersions = uiState.supportedVersions,
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                SettingsDrawerContent(
+                    selectedVersion = selectedVersion,
+                    supportedVersions = supportedVersions,
                     onVersionSelected = onVersionSelected
                 )
             }
+        },
+        gesturesEnabled = true,
+        modifier = modifier.fillMaxSize()
+    ) {
+        Scaffold(modifier = Modifier.fillMaxSize()) { contentPadding ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(contentPadding),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                when (uiState) {
+                    HomeScreenUiState.Loading -> CenterMessage {
+                        CircularProgressIndicator()
+                    }
 
-            is HomeScreenUiState.Content -> ReferenceResultsList(chunks = uiState.chunks)
+                    HomeScreenUiState.Empty -> {
+                        val message = if (parsedReferenceChunks.isEmpty()) {
+                            "No references found."
+                        } else {
+                            "No verses found for ${parsedReferenceChunks.size} parsed reference(s)."
+                        }
+                        CenterMessage {
+                            Text(
+                                text = message,
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    is HomeScreenUiState.InvalidReference -> CenterMessage {
+                        Text(
+                            text = uiState.message,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    is HomeScreenUiState.UnsupportedVersion -> CenterMessage {
+                        UnsupportedVersionMessage(
+                            requestedVersion = uiState.requestedVersion,
+                            supportedVersions = uiState.supportedVersions,
+                            onVersionSelected = onVersionSelected
+                        )
+                    }
+
+                    is HomeScreenUiState.Content -> ReferenceResultsList(chunks = uiState.chunks)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsDrawerContent(
+    selectedVersion: String?,
+    supportedVersions: List<String>,
+    onVersionSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val versionLabel = selectedVersion ?: "Select version"
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "Settings",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Text(
+            text = "Version",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            TextField(
+                value = versionLabel,
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                supportedVersions.forEach { version ->
+                    DropdownMenuItem(
+                        text = { Text(version) },
+                        onClick = {
+                            onVersionSelected(version)
+                            expanded = false
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -203,6 +302,8 @@ private fun HomeScreenLightPreview() {
     BibleFobTheme(darkTheme = false) {
         HomeScreen(
             parsedReferenceChunks = listOf("John 3:16-17", "Psalm 23:1-2"),
+            selectedVersion = "NET",
+            supportedVersions = listOf("KJV", "ASV", "WEB", "YLT", "NET"),
             uiState = HomeScreenUiState.Content(
                 chunks = listOf(
                     ReferenceChunkUiModel(
@@ -236,6 +337,8 @@ private fun HomeScreenDarkPreview() {
     BibleFobTheme(darkTheme = true) {
         HomeScreen(
             parsedReferenceChunks = listOf("John 3:16-17"),
+            selectedVersion = "ASV",
+            supportedVersions = listOf("KJV", "ASV", "WEB", "YLT"),
             uiState = HomeScreenUiState.Loading
         )
     }

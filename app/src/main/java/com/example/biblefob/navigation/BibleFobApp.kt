@@ -93,6 +93,8 @@ fun BibleFobApp(
             HomeScreen(
                 parsedReferenceChunks = parsedReferences,
                 uiState = uiState,
+                selectedVersion = selectedVersion,
+                supportedVersions = SUPPORTED_VERSIONS,
                 onVersionSelected = { selectedVersion = normalizeVersionOrNull(it) }
             )
         }
