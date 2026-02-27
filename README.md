@@ -109,6 +109,32 @@ Configure all of these repository secrets:
 
 If any are missing, the workflow still builds/releases an unsigned APK.
 
+
+### Create keystore + Base64 secret value
+
+To generate a signing keystore locally, run `keytool` from your JDK installation (example Windows path):
+
+```powershell
+'C:\Program Files\Java\jdk-21\bin\keytool.exe' -genkey -v -keystore YOUR_KEYSTORE_PATH -alias YOUR_KEY_ALIAS -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Fill in the certificate prompts and passwords, then Base64-encode the keystore (single line) for GitHub Secrets:
+
+```bash
+openssl base64 < ../android-keystore.jks | tr -d '\n' | tee your_signing_keystore_base64_encoded.txt
+```
+
+Use the Base64 output as `KEYSTORE_BASE64`, and add all required values in:
+
+`Settings > Security: Secrets and variables > Actions > Repository Secrets`
+
+Required secret keys:
+
+- `KEYSTORE_BASE64`
+- `KEYSTORE_PASSWORD`
+- `KEY_ALIAS`
+- `KEY_PASSWORD` (same as `KEYSTORE_PASSWORD`)
+
 ### Typical release flow
 
 ```bash
