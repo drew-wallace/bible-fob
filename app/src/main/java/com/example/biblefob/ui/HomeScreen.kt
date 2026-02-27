@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,6 +40,10 @@ sealed interface HomeScreenUiState {
     data object Loading : HomeScreenUiState
     data object Empty : HomeScreenUiState
     data class InvalidReference(val message: String) : HomeScreenUiState
+    data class UnsupportedVersion(
+        val requestedVersion: String,
+        val supportedVersions: List<String>
+    ) : HomeScreenUiState
     data class Content(val chunks: List<ReferenceChunkUiModel>) : HomeScreenUiState
 }
 
@@ -46,6 +51,7 @@ sealed interface HomeScreenUiState {
 fun HomeScreen(
     parsedReferenceChunks: List<String> = emptyList(),
     uiState: HomeScreenUiState = HomeScreenUiState.Empty,
+    onVersionSelected: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -78,7 +84,44 @@ fun HomeScreen(
                 )
             }
 
+            is HomeScreenUiState.UnsupportedVersion -> CenterMessage {
+                UnsupportedVersionMessage(
+                    requestedVersion = uiState.requestedVersion,
+                    supportedVersions = uiState.supportedVersions,
+                    onVersionSelected = onVersionSelected
+                )
+            }
+
             is HomeScreenUiState.Content -> ReferenceResultsList(chunks = uiState.chunks)
+        }
+    }
+}
+
+@Composable
+private fun UnsupportedVersionMessage(
+    requestedVersion: String,
+    supportedVersions: List<String>,
+    onVersionSelected: (String) -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "Version $requestedVersion is not supported.",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Choose one of the supported versions:",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center
+        )
+        supportedVersions.forEach { version ->
+            Button(onClick = { onVersionSelected(version) }) {
+                Text(text = version)
+            }
         }
     }
 }
