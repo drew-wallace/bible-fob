@@ -115,11 +115,19 @@ private fun ReferenceChunkCard(chunk: ReferenceChunkUiModel) {
                 fontWeight = FontWeight.SemiBold
             )
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                chunk.verses.forEach { verse ->
+                if (chunk.verses.isEmpty()) {
                     Text(
-                        text = "${verse.number}. ${verse.text}",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "No verses available for this reference.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                } else {
+                    chunk.verses.forEach { verse ->
+                        Text(
+                            text = "${verse.number}. ${verse.text}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
         }
