@@ -66,6 +66,8 @@ sealed interface HomeScreenUiState {
     data class Content(val chunks: List<ReferenceChunkUiModel>) : HomeScreenUiState
 }
 
+private val DrawerTopSafeDrawingInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
+
 @Composable
 fun HomeScreen(
     parsedReferenceChunks: List<String> = emptyList(),
@@ -81,7 +83,7 @@ fun HomeScreen(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
+                windowInsets = DrawerTopSafeDrawingInsets
             ) {
                 SettingsDrawerContent(
                     selectedVersion = selectedVersion,
