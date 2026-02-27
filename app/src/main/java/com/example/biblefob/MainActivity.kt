@@ -51,7 +51,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun isSupportedPassageUri(uri: Uri): Boolean {
-        return uri.path == "/passage"
+        return uri.path
+            ?.trimEnd('/')
+            ?.equals("/passage", ignoreCase = true)
+            ?: false
     }
 
     private fun openInExternalBrowser(uri: Uri) {
@@ -70,6 +73,8 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        startActivity(browserIntent)
+        if (externalBrowserActivity != null) {
+            startActivity(browserIntent)
+        }
     }
 }
