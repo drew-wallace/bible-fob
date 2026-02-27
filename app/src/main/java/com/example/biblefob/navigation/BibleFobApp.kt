@@ -2,7 +2,10 @@ package com.example.biblefob.navigation
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,13 +29,17 @@ fun BibleFobApp(
         SearchQueryParser().parseFromUriString(deepLinkUriString)
     }
 
-    val selectedVersion = remember(deepLinkUriString) {
+    val requestedVersion = remember(deepLinkUriString) {
         deepLinkUriString
             ?.let(Uri::parse)
             ?.getQueryParameter(VERSION_PARAM)
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
             ?: DEFAULT_VERSION
+    }
+
+    var selectedVersion by remember(requestedVersion) {
+        mutableStateOf(normalizeVersionOrNull(requestedVersion))
     }
 
     val hasSearchQuery = remember(deepLinkUriString) {
@@ -43,8 +50,15 @@ fun BibleFobApp(
             ?: false
     }
 
-    val uiState = remember(parsedReferences, selectedVersion, hasSearchQuery) {
+    val uiState = remember(parsedReferences, selectedVersion, hasSearchQuery, requestedVersion) {
         when {
+            selectedVersion == null -> {
+                HomeScreenUiState.UnsupportedVersion(
+                    requestedVersion = requestedVersion,
+                    supportedVersions = SUPPORTED_VERSIONS
+                )
+            }
+
             parsedReferences.isEmpty() && hasSearchQuery -> {
                 HomeScreenUiState.InvalidReference(
                     message = "Unable to parse the requested reference(s)."
@@ -53,14 +67,14 @@ fun BibleFobApp(
 
             parsedReferences.isEmpty() -> HomeScreenUiState.Empty
             else -> {
-                val repository = buildRepository(context = context, version = selectedVersion)
+                val repository = buildRepository(context = context, version = selectedVersion ?: DEFAULT_VERSION)
                 val chunks = parsedReferences.map { reference ->
                     val verses = repository.getVerses(reference).map { verse ->
                         VerseUiModel(number = verse.number, text = verse.text)
                     }
                     ReferenceChunkUiModel(
                         normalizedReference = reference,
-                        version = selectedVersion,
+                        version = selectedVersion ?: DEFAULT_VERSION,
                         verses = verses
                     )
                 }
@@ -78,7 +92,8 @@ fun BibleFobApp(
         composable(HOME_ROUTE) {
             HomeScreen(
                 parsedReferenceChunks = parsedReferences,
-                uiState = uiState
+                uiState = uiState,
+                onVersionSelected = { selectedVersion = normalizeVersionOrNull(it) }
             )
         }
     }
@@ -91,7 +106,13 @@ private fun buildRepository(context: android.content.Context, version: String): 
     )
 }
 
+private fun normalizeVersionOrNull(version: String): String? {
+    val normalizedVersion = version.trim().uppercase()
+    return SUPPORTED_VERSIONS.firstOrNull { it == normalizedVersion }
+}
+
 private const val HOME_ROUTE = "home"
 private const val SEARCH_PARAM = "search"
 private const val VERSION_PARAM = "version"
-private const val DEFAULT_VERSION = "KJV"
+private const val DEFAULT_VERSION = "ASV"
+private val SUPPORTED_VERSIONS = listOf("KJV", "ASV", "WEB", "YLT")
