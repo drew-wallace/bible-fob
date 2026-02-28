@@ -4,10 +4,14 @@ import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
@@ -65,6 +69,7 @@ sealed interface HomeScreenUiState {
     data class Content(val chunks: List<ReferenceChunkUiModel>) : HomeScreenUiState
 }
 
+private val DrawerTopSafeDrawingInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
 enum class VerseDisplayMode {
     CONCATENATED,
     LINE_BY_LINE
@@ -85,7 +90,9 @@ fun HomeScreen(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet(
+                windowInsets = DrawerTopSafeDrawingInsets
+            ) {
                 SettingsDrawerContent(
                     selectedVersion = selectedVersion,
                     supportedVersions = supportedVersions,
@@ -98,7 +105,10 @@ fun HomeScreen(
         gesturesEnabled = true,
         modifier = modifier.fillMaxSize()
     ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { contentPadding ->
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            contentWindowInsets = WindowInsets.safeDrawing
+        ) { contentPadding ->
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
@@ -398,6 +408,35 @@ private fun HomeScreenDarkPreview() {
             selectedVersion = "ASV",
             supportedVersions = listOf("KJV", "ASV", "WEB", "YLT"),
             uiState = HomeScreenUiState.Loading
+        )
+    }
+}
+
+@Preview(
+    showBackground = true,
+    widthDp = 640,
+    heightDp = 360,
+    name = "Home - Landscape"
+)
+@Composable
+private fun HomeScreenLandscapePreview() {
+    BibleFobTheme(darkTheme = false) {
+        HomeScreen(
+            parsedReferenceChunks = listOf("John 3:16-17"),
+            selectedVersion = "WEB",
+            supportedVersions = listOf("KJV", "ASV", "WEB", "YLT", "NET"),
+            uiState = HomeScreenUiState.Content(
+                chunks = listOf(
+                    ReferenceChunkUiModel(
+                        normalizedReference = "John 3:16-17",
+                        version = "WEB",
+                        verses = listOf(
+                            VerseUiModel(16, "For God so loved the world, that he gave his one and only Son..."),
+                            VerseUiModel(17, "For God didn't send his Son into the world to judge the world...")
+                        )
+                    )
+                )
+            )
         )
     }
 }
