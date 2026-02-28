@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
@@ -28,6 +29,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberDrawerState
@@ -35,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,6 +70,10 @@ sealed interface HomeScreenUiState {
 }
 
 private val DrawerTopSafeDrawingInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
+enum class VerseDisplayMode {
+    CONCATENATED,
+    LINE_BY_LINE
+}
 
 @Composable
 fun HomeScreen(
@@ -78,6 +85,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    var verseDisplayMode by rememberSaveable { mutableStateOf(VerseDisplayMode.CONCATENATED) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -88,7 +96,9 @@ fun HomeScreen(
                 SettingsDrawerContent(
                     selectedVersion = selectedVersion,
                     supportedVersions = supportedVersions,
-                    onVersionSelected = onVersionSelected
+                    onVersionSelected = onVersionSelected,
+                    verseDisplayMode = verseDisplayMode,
+                    onVerseDisplayModeChange = { verseDisplayMode = it }
                 )
             }
         },
@@ -142,7 +152,10 @@ fun HomeScreen(
                         )
                     }
 
-                    is HomeScreenUiState.Content -> ReferenceResultsList(chunks = uiState.chunks)
+                    is HomeScreenUiState.Content -> ReferenceResultsList(
+                        chunks = uiState.chunks,
+                        verseDisplayMode = verseDisplayMode
+                    )
                 }
             }
         }
@@ -154,7 +167,9 @@ fun HomeScreen(
 private fun SettingsDrawerContent(
     selectedVersion: String?,
     supportedVersions: List<String>,
-    onVersionSelected: (String) -> Unit
+    onVersionSelected: (String) -> Unit,
+    verseDisplayMode: VerseDisplayMode,
+    onVerseDisplayModeChange: (VerseDisplayMode) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     val versionLabel = selectedVersion ?: "Select version"
@@ -204,6 +219,27 @@ private fun SettingsDrawerContent(
                 }
             }
         }
+
+        Text(
+            text = "Display",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "Display verses line-by-line")
+            Switch(
+                checked = verseDisplayMode == VerseDisplayMode.LINE_BY_LINE,
+                onCheckedChange = { isChecked ->
+                    onVerseDisplayModeChange(
+                        if (isChecked) VerseDisplayMode.LINE_BY_LINE else VerseDisplayMode.CONCATENATED
+                    )
+                }
+            )
+        }
     }
 }
 
@@ -237,7 +273,10 @@ private fun UnsupportedVersionMessage(
 }
 
 @Composable
-private fun ReferenceResultsList(chunks: List<ReferenceChunkUiModel>) {
+private fun ReferenceResultsList(
+    chunks: List<ReferenceChunkUiModel>,
+    verseDisplayMode: VerseDisplayMode
+) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -245,13 +284,16 @@ private fun ReferenceResultsList(chunks: List<ReferenceChunkUiModel>) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(chunks) { chunk ->
-            ReferenceChunkCard(chunk = chunk)
+            ReferenceChunkCard(chunk = chunk, verseDisplayMode = verseDisplayMode)
         }
     }
 }
 
 @Composable
-private fun ReferenceChunkCard(chunk: ReferenceChunkUiModel) {
+private fun ReferenceChunkCard(
+    chunk: ReferenceChunkUiModel,
+    verseDisplayMode: VerseDisplayMode
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
@@ -268,18 +310,33 @@ private fun ReferenceChunkCard(chunk: ReferenceChunkUiModel) {
                 fontWeight = FontWeight.SemiBold
             )
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (chunk.verses.isEmpty()) {
+                val versesWithText = chunk.verses.filter { verse -> verse.text.isNotBlank() }
+
+                if (versesWithText.isEmpty()) {
                     Text(
                         text = "No verses available for this reference.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
-                    chunk.verses.forEach { verse ->
-                        Text(
-                            text = "${verse.number}. ${verse.text}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                    when (verseDisplayMode) {
+                        VerseDisplayMode.LINE_BY_LINE -> {
+                            versesWithText.forEach { verse ->
+                                Text(
+                                    text = "${verse.number}. ${verse.text}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+
+                        VerseDisplayMode.CONCATENATED -> {
+                            Text(
+                                text = versesWithText.joinToString(" ") { verse ->
+                                    "${verse.number}. ${verse.text}"
+                                },
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
             }
