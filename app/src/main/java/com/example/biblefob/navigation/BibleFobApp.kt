@@ -18,6 +18,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.biblefob.data.AssetBibleRepositoryFactory
 import com.example.biblefob.data.BibleRepository
+import com.example.biblefob.data.JsonBibleRepository
 import com.example.biblefob.data.VersionCatalogDataStoreRepository
 import com.example.biblefob.data.VersionCatalogRepository
 import com.example.biblefob.data.VersionEntry
@@ -98,6 +99,13 @@ fun BibleFobApp(
         }
 
         coroutineScope.launch {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    selectedUri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+
             val defaultDisplayName = deriveDefaultDisplayName(context = context, uri = selectedUri)
             val importResult = importVersionFromJson(
                 uri = selectedUri,
@@ -228,6 +236,17 @@ private fun deriveDefaultDisplayName(context: android.content.Context, uri: Uri)
 }
 
 private fun buildRepository(context: android.content.Context, version: VersionEntry): BibleRepository {
+    if (version.sqliteDbAssetPath.startsWith(CONTENT_URI_PREFIX)) {
+        val wholeBibleJson = runCatching {
+            context.contentResolver
+                .openInputStream(Uri.parse(version.sqliteDbAssetPath))
+                ?.bufferedReader()
+                ?.use { it.readText() }
+        }.getOrNull()
+
+        return JsonBibleRepository(wholeBibleJson = wholeBibleJson)
+    }
+
     return AssetBibleRepositoryFactory.createForVersionEntry(
         context = context,
         entry = version
@@ -248,3 +267,4 @@ private fun defaultVersionEntry(): VersionEntry {
 private const val HOME_ROUTE = "home"
 private const val SEARCH_PARAM = "search"
 private const val VERSION_PARAM = "version"
+private const val CONTENT_URI_PREFIX = "content://"

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.example.biblefob.data.VersionCatalogRepository
 import com.example.biblefob.data.VersionEntry
+import org.json.JSONArray
 import org.json.JSONObject
 
 class ImportVersionFromJsonUseCase(
@@ -15,43 +16,41 @@ class ImportVersionFromJsonUseCase(
             context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
         }.getOrNull() ?: return Result.failure(IllegalArgumentException("Unable to read the selected file."))
 
+        if (!isSupportedBibleJson(rawJson)) {
+            return Result.failure(IllegalArgumentException("Selected file is not valid Bible JSON."))
+        }
+
         val entry = runCatching {
-            buildEntry(JSONObject(rawJson), uri = uri, defaultDisplayName = defaultDisplayName)
+            buildEntry(uri = uri, defaultDisplayName = defaultDisplayName)
         }.getOrElse {
-            return Result.failure(IllegalArgumentException("Invalid version JSON format."))
+            return Result.failure(IllegalArgumentException("Unable to import selected version."))
         }
 
         versionCatalogRepository.upsertUserEntry(entry)
         return Result.success(entry)
     }
 
-    private fun buildEntry(jsonObject: JSONObject, uri: Uri, defaultDisplayName: String): VersionEntry {
-        val displayName = jsonObject.optString(JSON_DISPLAY_NAME)
-            .trim()
-            .ifBlank { defaultDisplayName.trim() }
-        val id = jsonObject.optString(JSON_ID)
-            .trim()
-            .ifBlank { displayName.toVersionId() }
-            .uppercase()
+    private fun buildEntry(uri: Uri, defaultDisplayName: String): VersionEntry {
+        val displayName = defaultDisplayName.trim()
+        val id = displayName.toVersionId().ifBlank { "IMPORTED" }
 
         require(displayName.isNotBlank())
         require(id.isNotBlank())
 
-        val fallbackPath = uri.toString()
+        val contentUriPath = uri.toString()
 
         return VersionEntry(
             id = id,
             displayName = displayName,
-            sqliteDbAssetPath = jsonObject.optString(JSON_SQLITE_DB_ASSET_PATH).trim().ifBlank { fallbackPath },
-            sqlDumpAssetPath = jsonObject.optString(JSON_SQL_DUMP_ASSET_PATH).trim().ifBlank { fallbackPath }
+            sqliteDbAssetPath = contentUriPath,
+            sqlDumpAssetPath = contentUriPath
         )
     }
-}
 
-private const val JSON_ID = "id"
-private const val JSON_DISPLAY_NAME = "displayName"
-private const val JSON_SQLITE_DB_ASSET_PATH = "sqliteDbAssetPath"
-private const val JSON_SQL_DUMP_ASSET_PATH = "sqlDumpAssetPath"
+    private fun isSupportedBibleJson(rawJson: String): Boolean {
+        return runCatching { JSONObject(rawJson) }.isSuccess || runCatching { JSONArray(rawJson) }.isSuccess
+    }
+}
 
 private fun String.toVersionId(): String {
     return uppercase()
