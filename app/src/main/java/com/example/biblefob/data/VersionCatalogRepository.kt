@@ -17,25 +17,29 @@ interface VersionCatalogRepository {
                 id = "KJV",
                 displayName = "King James Version",
                 sqliteDbAssetPath = DataSourcePaths.sqliteDbAsset("KJV"),
-                sqlDumpAssetPath = DataSourcePaths.sqlDumpAsset("KJV")
+                sqlDumpAssetPath = DataSourcePaths.sqlDumpAsset("KJV"),
+                policy = VersionManagementPolicy.BUNDLED
             ),
             VersionEntry(
                 id = "ASV",
                 displayName = "American Standard Version",
                 sqliteDbAssetPath = DataSourcePaths.sqliteDbAsset("ASV"),
-                sqlDumpAssetPath = DataSourcePaths.sqlDumpAsset("ASV")
+                sqlDumpAssetPath = DataSourcePaths.sqlDumpAsset("ASV"),
+                policy = VersionManagementPolicy.BUNDLED
             ),
             VersionEntry(
                 id = "WEB",
                 displayName = "World English Bible",
                 sqliteDbAssetPath = DataSourcePaths.sqliteDbAsset("WEB"),
-                sqlDumpAssetPath = DataSourcePaths.sqlDumpAsset("WEB")
+                sqlDumpAssetPath = DataSourcePaths.sqlDumpAsset("WEB"),
+                policy = VersionManagementPolicy.BUNDLED
             ),
             VersionEntry(
                 id = "YLT",
                 displayName = "Young's Literal Translation",
                 sqliteDbAssetPath = DataSourcePaths.sqliteDbAsset("YLT"),
-                sqlDumpAssetPath = DataSourcePaths.sqlDumpAsset("YLT")
+                sqlDumpAssetPath = DataSourcePaths.sqlDumpAsset("YLT"),
+                policy = VersionManagementPolicy.BUNDLED
             )
         )
 

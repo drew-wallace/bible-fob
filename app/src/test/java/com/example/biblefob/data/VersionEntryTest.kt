@@ -23,6 +23,7 @@ class VersionEntryTest {
         assertNotNull(parsed)
         assertEquals("WEB", parsed?.id)
         assertEquals("World English Bible", parsed?.displayName)
+        assertEquals(VersionManagementPolicy.USER_IMPORTED, parsed?.policy)
     }
 
     @Test

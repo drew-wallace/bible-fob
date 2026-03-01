@@ -61,7 +61,9 @@ data class ReferenceChunkUiModel(
 
 data class VersionOptionUiModel(
     val id: String,
-    val displayName: String
+    val displayName: String,
+    val canRename: Boolean = false,
+    val canDelete: Boolean = false
 )
 
 sealed interface HomeScreenUiState {
@@ -192,6 +194,7 @@ private fun SettingsDrawerContent(
     onVerseDisplayModeChange: (VerseDisplayMode) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var editingVersionId by rememberSaveable { mutableStateOf<String?>(null) }
     var renameInput by rememberSaveable { mutableStateOf("") }
     val versionLabel = supportedVersions
         .firstOrNull { it.id == selectedVersion }
@@ -251,39 +254,75 @@ private fun SettingsDrawerContent(
             }
         }
 
-        TextField(
-            value = renameInput,
-            onValueChange = { renameInput = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Rename selected version") },
-            enabled = selectedVersion != null
+        Text(
+            text = "Manage versions",
+            style = MaterialTheme.typography.titleSmall
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = {
-                    val versionId = selectedVersion ?: return@Button
-                    onRenameVersion(versionId, renameInput)
-                    renameInput = ""
-                },
-                enabled = selectedVersion != null && renameInput.isNotBlank(),
-                modifier = Modifier.weight(1f)
+        supportedVersions.forEach { version ->
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text(text = "Rename")
-            }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = version.displayName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (version.id == selectedVersion) FontWeight.SemiBold else FontWeight.Normal
+                    )
 
-            TextButton(
-                onClick = {
-                    val versionId = selectedVersion ?: return@TextButton
-                    onDeleteVersion(versionId)
-                },
-                enabled = selectedVersion != null,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(text = "Delete")
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (version.canRename) {
+                            TextButton(onClick = {
+                                editingVersionId = version.id
+                                renameInput = version.displayName
+                            }) {
+                                Text(text = "Edit")
+                            }
+                        }
+
+                        if (version.canDelete) {
+                            TextButton(onClick = { onDeleteVersion(version.id) }) {
+                                Text(text = "Delete")
+                            }
+                        } else {
+                            Text(
+                                text = "Bundled",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                if (editingVersionId == version.id) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextField(
+                            value = renameInput,
+                            onValueChange = { renameInput = it },
+                            label = { Text("New display name") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        Button(
+                            onClick = {
+                                onRenameVersion(version.id, renameInput)
+                                editingVersionId = null
+                                renameInput = ""
+                            },
+                            enabled = renameInput.isNotBlank()
+                        ) {
+                            Text(text = "Save")
+                        }
+                    }
+                }
             }
         }
 

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.example.biblefob.data.VersionCatalogRepository
 import com.example.biblefob.data.VersionEntry
+import com.example.biblefob.data.VersionManagementPolicy
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -43,7 +44,8 @@ class ImportVersionFromJsonUseCase(
             id = id,
             displayName = displayName,
             sqliteDbAssetPath = contentUriPath,
-            sqlDumpAssetPath = contentUriPath
+            sqlDumpAssetPath = contentUriPath,
+            policy = VersionManagementPolicy.USER_IMPORTED
         )
     }
 
