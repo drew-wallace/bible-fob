@@ -43,6 +43,59 @@ class VersionCatalogDataStoreRepository(
         }
     }
 
+    override suspend fun renameUserEntry(id: String, displayName: String): Boolean {
+        if (displayName.isBlank()) return false
+
+        var renamed = false
+        context.versionDataStore.edit { preferences ->
+            val updatedEntries = parseEntries(preferences[USER_ENTRIES_JSON_KEY].orEmpty())
+                .map { entry ->
+                    if (entry.id == id) {
+                        renamed = true
+                        entry.copy(displayName = displayName.trim())
+                    } else {
+                        entry
+                    }
+                }
+                .sortedBy(VersionEntry::displayName)
+
+            preferences[USER_ENTRIES_JSON_KEY] = JSONArray()
+                .also { jsonArray ->
+                    updatedEntries.forEach { item ->
+                        jsonArray.put(item.toJsonObject())
+                    }
+                }
+                .toString()
+        }
+
+        return renamed
+    }
+
+    override suspend fun deleteUserEntry(id: String): Boolean {
+        var deleted = false
+
+        context.versionDataStore.edit { preferences ->
+            val currentEntries = parseEntries(preferences[USER_ENTRIES_JSON_KEY].orEmpty())
+            val updatedEntries = currentEntries.filterNot { entry ->
+                val shouldDelete = entry.id == id
+                if (shouldDelete) {
+                    deleted = true
+                }
+                shouldDelete
+            }
+
+            preferences[USER_ENTRIES_JSON_KEY] = JSONArray()
+                .also { jsonArray ->
+                    updatedEntries.forEach { item ->
+                        jsonArray.put(item.toJsonObject())
+                    }
+                }
+                .toString()
+        }
+
+        return deleted
+    }
+
     private fun parseEntries(rawJson: String): List<VersionEntry> {
         if (rawJson.isBlank()) return emptyList()
 

@@ -7,6 +7,10 @@ interface VersionCatalogRepository {
 
     suspend fun upsertUserEntry(entry: VersionEntry)
 
+    suspend fun renameUserEntry(id: String, displayName: String): Boolean
+
+    suspend fun deleteUserEntry(id: String): Boolean
+
     companion object {
         val builtInEntries: List<VersionEntry> = listOf(
             VersionEntry(
