@@ -2,20 +2,26 @@ package com.example.biblefob.navigation
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.biblefob.data.AssetBibleRepositoryFactory
 import com.example.biblefob.data.BibleRepository
+import com.example.biblefob.data.VersionCatalogDataStoreRepository
+import com.example.biblefob.data.VersionCatalogRepository
+import com.example.biblefob.data.VersionEntry
 import com.example.biblefob.parsing.SearchQueryParser
 import com.example.biblefob.ui.HomeScreen
 import com.example.biblefob.ui.HomeScreenUiState
 import com.example.biblefob.ui.ReferenceChunkUiModel
+import com.example.biblefob.ui.VersionOptionUiModel
 import com.example.biblefob.ui.VerseUiModel
 
 @Composable
@@ -24,6 +30,10 @@ fun BibleFobApp(
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
+    val versionCatalogRepository = remember(context) { VersionCatalogDataStoreRepository(context) }
+    val versionEntries by versionCatalogRepository.versionEntries.collectAsState(
+        initial = VersionCatalogRepository.builtInEntries
+    )
 
     val parsedReferences = remember(deepLinkUriString) {
         SearchQueryParser().parseFromUriString(deepLinkUriString)
@@ -35,11 +45,20 @@ fun BibleFobApp(
             ?.getQueryParameter(VERSION_PARAM)
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
-            ?: DEFAULT_VERSION
+            ?: VersionCatalogRepository.defaultVersionId
     }
 
     var selectedVersion by remember(requestedVersion) {
-        mutableStateOf(normalizeVersionOrNull(requestedVersion))
+        mutableStateOf<String?>(null)
+    }
+
+    LaunchedEffect(requestedVersion, versionEntries) {
+        if (selectedVersion == null) {
+            selectedVersion = normalizeVersionOrNull(
+                version = requestedVersion,
+                supportedVersions = versionEntries
+            )
+        }
     }
 
     val hasSearchQuery = remember(deepLinkUriString) {
@@ -50,12 +69,16 @@ fun BibleFobApp(
             ?: false
     }
 
-    val uiState = remember(parsedReferences, selectedVersion, hasSearchQuery, requestedVersion) {
+    val supportedVersionOptions = remember(versionEntries) {
+        versionEntries.map { entry -> VersionOptionUiModel(id = entry.id, displayName = entry.displayName) }
+    }
+
+    val uiState = remember(parsedReferences, selectedVersion, hasSearchQuery, requestedVersion, versionEntries) {
         when {
             selectedVersion == null -> {
                 HomeScreenUiState.UnsupportedVersion(
                     requestedVersion = requestedVersion,
-                    supportedVersions = SUPPORTED_VERSIONS
+                    supportedVersions = supportedVersionOptions
                 )
             }
 
@@ -67,14 +90,15 @@ fun BibleFobApp(
 
             parsedReferences.isEmpty() -> HomeScreenUiState.Empty
             else -> {
-                val repository = buildRepository(context = context, version = selectedVersion ?: DEFAULT_VERSION)
+                val selectedEntry = versionEntries.firstOrNull { it.id == selectedVersion }
+                val repository = buildRepository(context = context, version = selectedEntry ?: defaultVersionEntry())
                 val chunks = parsedReferences.map { reference ->
                     val verses = repository.getVerses(reference).map { verse ->
                         VerseUiModel(number = verse.number, text = verse.text)
                     }
                     ReferenceChunkUiModel(
                         normalizedReference = reference,
-                        version = selectedVersion ?: DEFAULT_VERSION,
+                        version = selectedEntry?.id ?: VersionCatalogRepository.defaultVersionId,
                         verses = verses
                     )
                 }
@@ -94,27 +118,37 @@ fun BibleFobApp(
                 parsedReferenceChunks = parsedReferences,
                 uiState = uiState,
                 selectedVersion = selectedVersion,
-                supportedVersions = SUPPORTED_VERSIONS,
-                onVersionSelected = { selectedVersion = normalizeVersionOrNull(it) }
+                supportedVersions = supportedVersionOptions,
+                onVersionSelected = {
+                    selectedVersion = normalizeVersionOrNull(
+                        version = it,
+                        supportedVersions = versionEntries
+                    )
+                }
             )
         }
     }
 }
 
-private fun buildRepository(context: android.content.Context, version: String): BibleRepository {
-    return AssetBibleRepositoryFactory.createForVersion(
+private fun buildRepository(context: android.content.Context, version: VersionEntry): BibleRepository {
+    return AssetBibleRepositoryFactory.create(
         context = context,
-        version = version
+        wholeBibleAssetPath = null,
+        perBookAssetFolder = "bible/${version.id}_books"
     )
 }
 
-private fun normalizeVersionOrNull(version: String): String? {
+private fun normalizeVersionOrNull(version: String, supportedVersions: List<VersionEntry>): String? {
     val normalizedVersion = version.trim().uppercase()
-    return SUPPORTED_VERSIONS.firstOrNull { it == normalizedVersion }
+    return supportedVersions.firstOrNull { it.id == normalizedVersion }?.id
+}
+
+private fun defaultVersionEntry(): VersionEntry {
+    return VersionCatalogRepository.builtInEntries
+        .firstOrNull { it.id == VersionCatalogRepository.defaultVersionId }
+        ?: VersionCatalogRepository.builtInEntries.first()
 }
 
 private const val HOME_ROUTE = "home"
 private const val SEARCH_PARAM = "search"
 private const val VERSION_PARAM = "version"
-private const val DEFAULT_VERSION = "ASV"
-private val SUPPORTED_VERSIONS = listOf("KJV", "ASV", "WEB", "YLT")

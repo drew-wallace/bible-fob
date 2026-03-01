@@ -58,13 +58,18 @@ data class ReferenceChunkUiModel(
     val verses: List<VerseUiModel>
 )
 
+data class VersionOptionUiModel(
+    val id: String,
+    val displayName: String
+)
+
 sealed interface HomeScreenUiState {
     data object Loading : HomeScreenUiState
     data object Empty : HomeScreenUiState
     data class InvalidReference(val message: String) : HomeScreenUiState
     data class UnsupportedVersion(
         val requestedVersion: String,
-        val supportedVersions: List<String>
+        val supportedVersions: List<VersionOptionUiModel>
     ) : HomeScreenUiState
     data class Content(val chunks: List<ReferenceChunkUiModel>) : HomeScreenUiState
 }
@@ -79,7 +84,7 @@ fun HomeScreen(
     parsedReferenceChunks: List<String> = emptyList(),
     uiState: HomeScreenUiState = HomeScreenUiState.Empty,
     selectedVersion: String? = null,
-    supportedVersions: List<String> = emptyList(),
+    supportedVersions: List<VersionOptionUiModel> = emptyList(),
     onVersionSelected: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -165,13 +170,16 @@ fun HomeScreen(
 @Composable
 private fun SettingsDrawerContent(
     selectedVersion: String?,
-    supportedVersions: List<String>,
+    supportedVersions: List<VersionOptionUiModel>,
     onVersionSelected: (String) -> Unit,
     verseDisplayMode: VerseDisplayMode,
     onVerseDisplayModeChange: (VerseDisplayMode) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val versionLabel = selectedVersion ?: "Select version"
+    val versionLabel = supportedVersions
+        .firstOrNull { it.id == selectedVersion }
+        ?.displayName
+        ?: "Select version"
 
     Column(
         modifier = Modifier
@@ -209,9 +217,9 @@ private fun SettingsDrawerContent(
             ) {
                 supportedVersions.forEach { version ->
                     DropdownMenuItem(
-                        text = { Text(version) },
+                        text = { Text(version.displayName) },
                         onClick = {
-                            onVersionSelected(version)
+                            onVersionSelected(version.id)
                             expanded = false
                         }
                     )
@@ -245,7 +253,7 @@ private fun SettingsDrawerContent(
 @Composable
 private fun UnsupportedVersionMessage(
     requestedVersion: String,
-    supportedVersions: List<String>,
+    supportedVersions: List<VersionOptionUiModel>,
     onVersionSelected: (String) -> Unit
 ) {
     Column(
@@ -264,8 +272,8 @@ private fun UnsupportedVersionMessage(
             textAlign = TextAlign.Center
         )
         supportedVersions.forEach { version ->
-            Button(onClick = { onVersionSelected(version) }) {
-                Text(text = version)
+            Button(onClick = { onVersionSelected(version.id) }) {
+                Text(text = version.displayName)
             }
         }
     }
@@ -370,7 +378,7 @@ private fun HomeScreenLightPreview() {
         HomeScreen(
             parsedReferenceChunks = listOf("John 3:16-17", "Psalm 23:1-2"),
             selectedVersion = "NET",
-            supportedVersions = listOf("KJV", "ASV", "WEB", "YLT", "NET"),
+            supportedVersions = listOf("KJV", "ASV", "WEB", "YLT", "NET").map { VersionOptionUiModel(it, it) },
             uiState = HomeScreenUiState.Content(
                 chunks = listOf(
                     ReferenceChunkUiModel(
@@ -405,7 +413,7 @@ private fun HomeScreenDarkPreview() {
         HomeScreen(
             parsedReferenceChunks = listOf("John 3:16-17"),
             selectedVersion = "ASV",
-            supportedVersions = listOf("KJV", "ASV", "WEB", "YLT"),
+            supportedVersions = listOf("KJV", "ASV", "WEB", "YLT").map { VersionOptionUiModel(it, it) },
             uiState = HomeScreenUiState.Loading
         )
     }
@@ -423,7 +431,7 @@ private fun HomeScreenLandscapePreview() {
         HomeScreen(
             parsedReferenceChunks = listOf("John 3:16-17"),
             selectedVersion = "WEB",
-            supportedVersions = listOf("KJV", "ASV", "WEB", "YLT", "NET"),
+            supportedVersions = listOf("KJV", "ASV", "WEB", "YLT", "NET").map { VersionOptionUiModel(it, it) },
             uiState = HomeScreenUiState.Content(
                 chunks = listOf(
                     ReferenceChunkUiModel(
