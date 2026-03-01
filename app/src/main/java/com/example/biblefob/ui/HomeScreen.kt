@@ -32,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -86,6 +87,11 @@ fun HomeScreen(
     selectedVersion: String? = null,
     supportedVersions: List<VersionOptionUiModel> = emptyList(),
     onVersionSelected: (String) -> Unit = {},
+    onAddVersionClick: () -> Unit = {},
+    onRenameVersion: (String, String) -> Unit = { _, _ -> },
+    onDeleteVersion: (String) -> Unit = {},
+    versionActionMessage: String? = null,
+    isVersionActionError: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -101,6 +107,11 @@ fun HomeScreen(
                     selectedVersion = selectedVersion,
                     supportedVersions = supportedVersions,
                     onVersionSelected = onVersionSelected,
+                    onAddVersionClick = onAddVersionClick,
+                    onRenameVersion = onRenameVersion,
+                    onDeleteVersion = onDeleteVersion,
+                    versionActionMessage = versionActionMessage,
+                    isVersionActionError = isVersionActionError,
                     verseDisplayMode = verseDisplayMode,
                     onVerseDisplayModeChange = { verseDisplayMode = it }
                 )
@@ -172,10 +183,16 @@ private fun SettingsDrawerContent(
     selectedVersion: String?,
     supportedVersions: List<VersionOptionUiModel>,
     onVersionSelected: (String) -> Unit,
+    onAddVersionClick: () -> Unit,
+    onRenameVersion: (String, String) -> Unit,
+    onDeleteVersion: (String) -> Unit,
+    versionActionMessage: String?,
+    isVersionActionError: Boolean,
     verseDisplayMode: VerseDisplayMode,
     onVerseDisplayModeChange: (VerseDisplayMode) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var renameInput by rememberSaveable { mutableStateOf("") }
     val versionLabel = supportedVersions
         .firstOrNull { it.id == selectedVersion }
         ?.displayName
@@ -197,6 +214,13 @@ private fun SettingsDrawerContent(
             text = "Version",
             style = MaterialTheme.typography.titleMedium
         )
+
+        Button(
+            onClick = onAddVersionClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "Add Version")
+        }
 
         ExposedDropdownMenuBox(
             expanded = expanded,
@@ -225,6 +249,50 @@ private fun SettingsDrawerContent(
                     )
                 }
             }
+        }
+
+        TextField(
+            value = renameInput,
+            onValueChange = { renameInput = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Rename selected version") },
+            enabled = selectedVersion != null
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = {
+                    val versionId = selectedVersion ?: return@Button
+                    onRenameVersion(versionId, renameInput)
+                    renameInput = ""
+                },
+                enabled = selectedVersion != null && renameInput.isNotBlank(),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(text = "Rename")
+            }
+
+            TextButton(
+                onClick = {
+                    val versionId = selectedVersion ?: return@TextButton
+                    onDeleteVersion(versionId)
+                },
+                enabled = selectedVersion != null,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(text = "Delete")
+            }
+        }
+
+        versionActionMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isVersionActionError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+            )
         }
 
         Text(
