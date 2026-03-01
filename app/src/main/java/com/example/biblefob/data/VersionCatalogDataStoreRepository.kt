@@ -20,9 +20,10 @@ class VersionCatalogDataStoreRepository(
         val rawJson = preferences[USER_ENTRIES_JSON_KEY].orEmpty()
         val userEntries = parseEntries(rawJson)
 
-        (VersionCatalogRepository.builtInEntries + userEntries)
-            .distinctBy(VersionEntry::id)
-            .sortedBy { entry -> entry.displayName }
+        mergeVersionEntries(
+            builtInEntries = VersionCatalogRepository.builtInEntries,
+            userEntries = userEntries
+        )
     }
 
     override suspend fun upsertUserEntry(entry: VersionEntry) {
@@ -58,3 +59,19 @@ class VersionCatalogDataStoreRepository(
 }
 
 private val USER_ENTRIES_JSON_KEY = stringPreferencesKey("user_version_entries_json")
+
+internal fun mergeVersionEntries(
+    builtInEntries: List<VersionEntry>,
+    userEntries: List<VersionEntry>
+): List<VersionEntry> {
+    val mergedById = linkedMapOf<String, VersionEntry>()
+    builtInEntries.forEach { entry ->
+        mergedById[entry.id] = entry
+    }
+    userEntries.forEach { entry ->
+        mergedById[entry.id] = entry
+    }
+
+    return mergedById.values
+        .sortedBy(VersionEntry::displayName)
+}

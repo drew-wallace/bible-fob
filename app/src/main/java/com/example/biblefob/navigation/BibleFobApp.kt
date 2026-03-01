@@ -131,10 +131,9 @@ fun BibleFobApp(
 }
 
 private fun buildRepository(context: android.content.Context, version: VersionEntry): BibleRepository {
-    return AssetBibleRepositoryFactory.create(
+    return AssetBibleRepositoryFactory.createForVersionEntry(
         context = context,
-        wholeBibleAssetPath = null,
-        perBookAssetFolder = "bible/${version.id}_books"
+        entry = version
     )
 }
 
