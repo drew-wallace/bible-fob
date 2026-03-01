@@ -7,7 +7,8 @@ object AssetBibleRepositoryFactory {
         context: Context,
         wholeBibleAssetPath: String? = DataSourcePaths.WHOLE_BIBLE_JSON,
         perBookAssetFolder: String = DataSourcePaths.PER_BOOK_JSON_DIR,
-        bookFileNameStyle: BookFileNameStyle = BookFileNameStyle.SLUG
+        bookFileNameStyle: BookFileNameStyle = BookFileNameStyle.SLUG,
+        sqlDataSource: SqlVerseDataSource? = null
     ): BibleRepository {
         val wholeBibleJson = wholeBibleAssetPath
             ?.let { path -> runCatching { context.assets.open(path).bufferedReader().use { it.readText() } }.getOrNull() }
@@ -20,7 +21,8 @@ object AssetBibleRepositoryFactory {
 
         return JsonBibleRepository(
             wholeBibleJson = wholeBibleJson,
-            perBookJsonLoader = perBookLoader
+            perBookJsonLoader = perBookLoader,
+            sqlDataSource = sqlDataSource
         )
     }
 
@@ -37,6 +39,64 @@ object AssetBibleRepositoryFactory {
             perBookAssetFolder = DataSourcePaths.perBookJsonDir(version),
             bookFileNameStyle = bookFileNameStyle
         )
+    }
+
+    fun createForVersionEntry(
+        context: Context,
+        entry: VersionEntry,
+        schemaVersion: Int = 1,
+        fallbackBookFileNameStyle: BookFileNameStyle = BookFileNameStyle.CANONICAL
+    ): BibleRepository {
+        val helper = createSqliteHelperOrNull(
+            context = context,
+            entry = entry,
+            schemaVersion = schemaVersion
+        )
+
+        val sqlDataSource = helper?.let(::SQLiteVerseDataSource)
+
+        return create(
+            context = context,
+            wholeBibleAssetPath = null,
+            perBookAssetFolder = DataSourcePaths.perBookJsonDir(entry.id),
+            bookFileNameStyle = fallbackBookFileNameStyle,
+            sqlDataSource = sqlDataSource
+        )
+    }
+
+    private fun createSqliteHelperOrNull(
+        context: Context,
+        entry: VersionEntry,
+        schemaVersion: Int
+    ): android.database.sqlite.SQLiteOpenHelper? {
+        val databaseName = "${entry.id}_bible.db"
+
+        if (assetExists(context, entry.sqliteDbAssetPath)) {
+            return AssetBackedSQLiteOpenHelper(
+                context = context,
+                assetPath = entry.sqliteDbAssetPath,
+                databaseName = databaseName,
+                version = schemaVersion
+            )
+        }
+
+        if (assetExists(context, entry.sqlDumpAssetPath)) {
+            return AssetSqlDumpSQLiteOpenHelper(
+                context = context,
+                sqlDumpAssetPath = entry.sqlDumpAssetPath,
+                databaseName = databaseName,
+                version = schemaVersion
+            )
+        }
+
+        return null
+    }
+
+    private fun assetExists(context: Context, path: String): Boolean {
+        return runCatching {
+            context.assets.open(path).use { }
+            true
+        }.getOrDefault(false)
     }
 }
 
