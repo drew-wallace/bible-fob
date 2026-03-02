@@ -29,6 +29,9 @@ import com.example.biblefob.ui.HomeScreenUiState
 import com.example.biblefob.ui.ReferenceChunkUiModel
 import com.example.biblefob.ui.VersionOptionUiModel
 import com.example.biblefob.ui.VerseUiModel
+import com.example.biblefob.versionmanagement.DeleteVersionResult
+import com.example.biblefob.versionmanagement.RenameVersionResult
+import com.example.biblefob.versionmanagement.VersionManagementService
 import kotlinx.coroutines.launch
 
 @Composable
@@ -41,6 +44,12 @@ fun BibleFobApp(
     val versionCatalogRepository = remember(context) { VersionCatalogDataStoreRepository(context) }
     val importVersionFromJson = remember(context, versionCatalogRepository) {
         ImportVersionFromJsonUseCase(
+            context = context,
+            versionCatalogRepository = versionCatalogRepository
+        )
+    }
+    val versionManagementService = remember(context, versionCatalogRepository) {
+        VersionManagementService(
             context = context,
             versionCatalogRepository = versionCatalogRepository
         )
@@ -86,7 +95,14 @@ fun BibleFobApp(
     }
 
     val supportedVersionOptions = remember(versionEntries) {
-        versionEntries.map { entry -> VersionOptionUiModel(id = entry.id, displayName = entry.displayName) }
+        versionEntries.map { entry ->
+            VersionOptionUiModel(
+                id = entry.id,
+                displayName = entry.displayName,
+                canRename = entry.policy.canRename,
+                canDelete = entry.policy.canDelete
+            )
+        }
     }
 
     val importDocumentLauncher = rememberLauncherForActivityResult(
@@ -182,28 +198,35 @@ fun BibleFobApp(
                 },
                 onRenameVersion = { versionId, displayName ->
                     coroutineScope.launch {
-                        val renamed = versionCatalogRepository.renameUserEntry(versionId, displayName)
-                        if (renamed) {
-                            versionActionMessage = "Renamed $versionId to ${displayName.trim()}."
-                            isVersionActionError = false
-                        } else {
-                            versionActionMessage = "Only imported versions can be renamed."
-                            isVersionActionError = true
+                        when (val result = versionManagementService.renameVersion(versionId, displayName)) {
+                            is RenameVersionResult.Success -> {
+                                if (selectedVersion == result.oldVersionId) {
+                                    selectedVersion = result.renamedEntry.id
+                                }
+                                versionActionMessage = "Renamed ${result.oldVersionId} to ${result.renamedEntry.displayName}."
+                                isVersionActionError = false
+                            }
+
+                            is RenameVersionResult.Failure -> {
+                                versionActionMessage = result.message
+                                isVersionActionError = true
+                            }
                         }
                     }
                 },
                 onDeleteVersion = { versionId ->
                     coroutineScope.launch {
-                        val deleted = versionCatalogRepository.deleteUserEntry(versionId)
-                        if (deleted) {
-                            if (selectedVersion == versionId) {
-                                selectedVersion = VersionCatalogRepository.defaultVersionId
+                        when (val result = versionManagementService.deleteVersion(versionId, selectedVersion)) {
+                            is DeleteVersionResult.Success -> {
+                                selectedVersion = result.fallbackSelectedVersion
+                                versionActionMessage = "Deleted ${result.deletedVersionId}."
+                                isVersionActionError = false
                             }
-                            versionActionMessage = "Deleted $versionId."
-                            isVersionActionError = false
-                        } else {
-                            versionActionMessage = "Only imported versions can be deleted."
-                            isVersionActionError = true
+
+                            is DeleteVersionResult.Failure -> {
+                                versionActionMessage = result.message
+                                isVersionActionError = true
+                            }
                         }
                     }
                 },

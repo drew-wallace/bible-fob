@@ -21,7 +21,8 @@ class VersionCatalogRepositoryTest {
                 id = "ASV",
                 displayName = "American Standard Version",
                 sqliteDbAssetPath = "database/ASV_bible.db",
-                sqlDumpAssetPath = "database/ASV_bible.sql"
+                sqlDumpAssetPath = "database/ASV_bible.sql",
+                policy = VersionManagementPolicy.BUNDLED
             )
         )
         val userEntries = listOf(
@@ -29,7 +30,8 @@ class VersionCatalogRepositoryTest {
                 id = "ASV",
                 displayName = "ASV (Custom)",
                 sqliteDbAssetPath = "database/ASV_custom.db",
-                sqlDumpAssetPath = "database/ASV_custom.sql"
+                sqlDumpAssetPath = "database/ASV_custom.sql",
+                policy = VersionManagementPolicy.USER_IMPORTED
             )
         )
 
