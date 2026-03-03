@@ -2,8 +2,10 @@ package com.example.biblefob.domain
 
 import android.content.Context
 import android.net.Uri
+import com.example.biblefob.data.DataSourcePaths
 import com.example.biblefob.data.VersionCatalogRepository
 import com.example.biblefob.data.VersionEntry
+import com.example.biblefob.data.VersionDataSourceType
 import com.example.biblefob.data.VersionManagementPolicy
 import com.example.biblefob.data.importer.ConflictingImportException
 import com.example.biblefob.data.importer.DuplicateImportException
@@ -41,7 +43,7 @@ class ImportVersionFromJsonUseCase(
         }
 
         val importedEntry = entry.copy(
-            sqliteDbAssetPath = importResult.sqlDumpFile.absolutePath,
+            sqliteDbAssetPath = DataSourcePaths.localSqliteDbFile(context.filesDir, entry.id).absolutePath,
             sqlDumpAssetPath = importResult.sqlDumpFile.absolutePath
         )
 
@@ -59,9 +61,10 @@ class ImportVersionFromJsonUseCase(
         return VersionEntry(
             id = id,
             displayName = displayName,
-            sqliteDbAssetPath = id,
-            sqlDumpAssetPath = id,
-            policy = VersionManagementPolicy.USER_IMPORTED
+            sqliteDbAssetPath = DataSourcePaths.localSqliteDbFile(context.filesDir, id).absolutePath,
+            sqlDumpAssetPath = DataSourcePaths.localSqlDumpFile(context.filesDir, id).absolutePath,
+            policy = VersionManagementPolicy.USER_IMPORTED,
+            dataSourceType = VersionDataSourceType.LOCAL_FILE
         )
     }
 }
