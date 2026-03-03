@@ -91,13 +91,16 @@ class VersionManagementService(
         if (path.startsWith(CONTENT_URI_PREFIX)) return path
 
         val currentFile = File(path)
-        if (!currentFile.exists()) return path
-        if (!isManagedFile(currentFile)) return path
+        if (!isManagedPath(currentFile.absolutePath)) return path
 
         val renamedFileName = currentFile.name.replace(oldVersionId, newVersionId, ignoreCase = true)
         if (renamedFileName == currentFile.name) return path
 
         val renamedFile = File(currentFile.parentFile, renamedFileName)
+        if (!currentFile.exists()) {
+            return renamedFile.absolutePath
+        }
+
         return if (currentFile.renameTo(renamedFile)) renamedFile.absolutePath else path
     }
 
@@ -111,10 +114,11 @@ class VersionManagementService(
         file.delete()
     }
 
-    private fun isManagedFile(file: File): Boolean {
-        val absolutePath = file.absolutePath
-        return absolutePath.startsWith(context.filesDir.absolutePath) ||
-            absolutePath.startsWith(context.cacheDir.absolutePath)
+    private fun isManagedFile(file: File): Boolean = isManagedPath(file.absolutePath)
+
+    private fun isManagedPath(path: String): Boolean {
+        return path.startsWith(context.filesDir.absolutePath) ||
+            path.startsWith(context.cacheDir.absolutePath)
     }
 }
 
