@@ -10,6 +10,9 @@ class DataSourcePathsTest {
         assertEquals("bible/NET_books", DataSourcePaths.perBookJsonDir("NET"))
         assertEquals("database/NET_bible.db", DataSourcePaths.sqliteDbAsset("NET"))
         assertEquals("database/NET_bible.sql", DataSourcePaths.sqlDumpAsset("NET"))
+
+        assertEquals("database/NET_bible.db", DataSourcePaths.Bundled.sqliteDbAsset("NET"))
+        assertEquals("database/NET_bible.sql", DataSourcePaths.Bundled.sqlDumpAsset("NET"))
     }
 
     @Test
@@ -24,11 +27,11 @@ class DataSourcePathsTest {
 
         assertEquals(
             "/tmp/test-files/imported_versions/NET_bible.db",
-            DataSourcePaths.localSqliteDbFile(filesDir, "NET").path
+            DataSourcePaths.Imported.sqliteDbFile(filesDir, "NET").path
         )
         assertEquals(
             "/tmp/test-files/imported_versions/NET_bible.sql",
-            DataSourcePaths.localSqlDumpFile(filesDir, "NET").path
+            DataSourcePaths.Imported.sqlDumpFile(filesDir, "NET").path
         )
     }
 

@@ -21,10 +21,12 @@ class LocalFileSQLiteOpenHelper(
 object LocalFileDatabaseFactory {
     fun createOrNull(
         context: Context,
-        entry: VersionEntry,
+        metadata: VersionDataSourceMetadata,
         schemaVersion: Int
     ): SQLiteOpenHelper? {
-        val localDbFile = File(entry.sqliteDbAssetPath)
+        if (metadata.type != VersionDataSourceType.LOCAL_FILE) return null
+
+        val localDbFile = File(metadata.sqliteDbPath)
         if (localDbFile.exists()) {
             return LocalFileSQLiteOpenHelper(
                 context = context,
@@ -33,16 +35,53 @@ object LocalFileDatabaseFactory {
             )
         }
 
-        val sqlDumpFile = File(entry.sqlDumpAssetPath)
+        val sqlDumpFile = File(metadata.sqlDumpPath)
         if (sqlDumpFile.exists()) {
-            return AssetSqlDumpSQLiteOpenHelper(
+            return LocalSqlDumpSQLiteOpenHelper(
                 context = context,
-                sqlDumpAssetPath = sqlDumpFile.absolutePath,
-                databaseName = entry.sqliteDbAssetPath,
+                sqlDumpFilePath = sqlDumpFile.absolutePath,
+                databaseFilePath = metadata.sqliteDbPath,
                 version = schemaVersion
             )
         }
 
         return null
     }
+}
+
+class LocalSqlDumpSQLiteOpenHelper(
+    context: Context,
+    private val sqlDumpFilePath: String,
+    private val databaseFilePath: String,
+    version: Int = 1
+) : SQLiteOpenHelper(context, databaseFilePath, null, version) {
+
+    override fun onCreate(db: SQLiteDatabase) {
+        val script = File(sqlDumpFilePath)
+            .takeIf(File::exists)
+            ?.bufferedReader()
+            ?.use { it.readText() }
+            ?: return
+
+        db.beginTransaction()
+        try {
+            script
+                .split(';')
+                .asSequence()
+                .map(String::trim)
+                .filter(String::isNotBlank)
+                .forEach(db::execSQL)
+
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    override fun onConfigure(db: SQLiteDatabase) {
+        super.onConfigure(db)
+        File(databaseFilePath).parentFile?.mkdirs()
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
 }
