@@ -16,19 +16,39 @@ object DataSourcePaths {
 
     private const val IMPORTED_VERSIONS_DIR = "imported_versions"
 
-    fun wholeBibleJson(version: String): String = "bible/${version}_bible.json"
+    object Bundled {
+        fun wholeBibleJson(version: String): String = "bible/${version}_bible.json"
 
-    fun perBookJsonDir(version: String): String = "bible/${version}_books"
+        fun perBookJsonDir(version: String): String = "bible/${version}_books"
 
-    fun sqliteDbAsset(version: String): String = "database/${version}_bible.db"
+        fun sqliteDbAsset(version: String): String = "database/${version}_bible.db"
 
-    fun sqlDumpAsset(version: String): String = "database/${version}_bible.sql"
+        fun sqlDumpAsset(version: String): String = "database/${version}_bible.sql"
+    }
+
+    object Imported {
+        fun sqliteDbFile(appFilesDir: File, version: String): File {
+            return File(appFilesDir, "$IMPORTED_VERSIONS_DIR/${version}_bible.db")
+        }
+
+        fun sqlDumpFile(appFilesDir: File, version: String): File {
+            return File(appFilesDir, "$IMPORTED_VERSIONS_DIR/${version}_bible.sql")
+        }
+    }
+
+    fun wholeBibleJson(version: String): String = Bundled.wholeBibleJson(version)
+
+    fun perBookJsonDir(version: String): String = Bundled.perBookJsonDir(version)
+
+    fun sqliteDbAsset(version: String): String = Bundled.sqliteDbAsset(version)
+
+    fun sqlDumpAsset(version: String): String = Bundled.sqlDumpAsset(version)
 
     fun localSqliteDbFile(appFilesDir: File, version: String): File {
-        return File(appFilesDir, "$IMPORTED_VERSIONS_DIR/${version}_bible.db")
+        return Imported.sqliteDbFile(appFilesDir, version)
     }
 
     fun localSqlDumpFile(appFilesDir: File, version: String): File {
-        return File(appFilesDir, "$IMPORTED_VERSIONS_DIR/${version}_bible.sql")
+        return Imported.sqlDumpFile(appFilesDir, version)
     }
 }

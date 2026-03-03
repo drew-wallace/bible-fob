@@ -1,6 +1,7 @@
 package com.example.biblefob.data
 
 import android.content.Context
+import java.io.File
 
 object AssetBibleRepositoryFactory {
     fun create(
@@ -69,16 +70,18 @@ object AssetBibleRepositoryFactory {
         entry: VersionEntry,
         schemaVersion: Int
     ): android.database.sqlite.SQLiteOpenHelper? {
-        return when (entry.dataSourceType) {
+        val metadata = entry.toDataSourceMetadata()
+
+        return when (metadata.type) {
             VersionDataSourceType.BUNDLED_ASSET -> createBundledAssetHelperOrNull(
                 context = context,
-                entry = entry,
+                metadata = metadata,
                 schemaVersion = schemaVersion
             )
 
             VersionDataSourceType.LOCAL_FILE -> LocalFileDatabaseFactory.createOrNull(
                 context = context,
-                entry = entry,
+                metadata = metadata,
                 schemaVersion = schemaVersion
             )
         }
@@ -86,24 +89,24 @@ object AssetBibleRepositoryFactory {
 
     private fun createBundledAssetHelperOrNull(
         context: Context,
-        entry: VersionEntry,
+        metadata: VersionDataSourceMetadata,
         schemaVersion: Int
     ): android.database.sqlite.SQLiteOpenHelper? {
-        val databaseName = "${entry.id}_bible.db"
+        val databaseName = File(metadata.sqliteDbPath).name
 
-        if (assetExists(context, entry.sqliteDbAssetPath)) {
+        if (assetExists(context, metadata.sqliteDbPath)) {
             return AssetBackedSQLiteOpenHelper(
                 context = context,
-                assetPath = entry.sqliteDbAssetPath,
+                assetPath = metadata.sqliteDbPath,
                 databaseName = databaseName,
                 version = schemaVersion
             )
         }
 
-        if (assetExists(context, entry.sqlDumpAssetPath)) {
+        if (assetExists(context, metadata.sqlDumpPath)) {
             return AssetSqlDumpSQLiteOpenHelper(
                 context = context,
-                sqlDumpAssetPath = entry.sqlDumpAssetPath,
+                sqlDumpAssetPath = metadata.sqlDumpPath,
                 databaseName = databaseName,
                 version = schemaVersion
             )

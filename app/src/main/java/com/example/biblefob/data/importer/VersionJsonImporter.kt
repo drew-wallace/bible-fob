@@ -80,7 +80,7 @@ class VersionJsonImporter(
     }
 
     private fun sqlDumpFileForVersion(versionId: String): File {
-        return DataSourcePaths.localSqlDumpFile(context.filesDir, versionId)
+        return DataSourcePaths.Imported.sqlDumpFile(context.filesDir, versionId)
     }
 
     private fun escapeSql(value: String): String = value.replace("'", "''")

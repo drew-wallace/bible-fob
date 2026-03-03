@@ -43,7 +43,7 @@ class ImportVersionFromJsonUseCase(
         }
 
         val importedEntry = entry.copy(
-            sqliteDbAssetPath = DataSourcePaths.localSqliteDbFile(context.filesDir, entry.id).absolutePath,
+            sqliteDbAssetPath = DataSourcePaths.Imported.sqliteDbFile(context.filesDir, entry.id).absolutePath,
             sqlDumpAssetPath = importResult.sqlDumpFile.absolutePath
         )
 
@@ -61,8 +61,8 @@ class ImportVersionFromJsonUseCase(
         return VersionEntry(
             id = id,
             displayName = displayName,
-            sqliteDbAssetPath = DataSourcePaths.localSqliteDbFile(context.filesDir, id).absolutePath,
-            sqlDumpAssetPath = DataSourcePaths.localSqlDumpFile(context.filesDir, id).absolutePath,
+            sqliteDbAssetPath = DataSourcePaths.Imported.sqliteDbFile(context.filesDir, id).absolutePath,
+            sqlDumpAssetPath = DataSourcePaths.Imported.sqlDumpFile(context.filesDir, id).absolutePath,
             policy = VersionManagementPolicy.USER_IMPORTED,
             dataSourceType = VersionDataSourceType.LOCAL_FILE
         )

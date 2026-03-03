@@ -157,15 +157,22 @@ fun BibleFobApp(
 
             parsedReferences.isEmpty() -> HomeScreenUiState.Empty
             else -> {
-                val selectedEntry = versionEntries.firstOrNull { it.id == selectedVersion }
-                val repository = buildRepository(context = context, version = selectedEntry ?: defaultVersionEntry())
+                val selectedEntry = resolveVersionEntry(
+                    selectedVersionId = selectedVersion,
+                    versionEntries = versionEntries
+                )
+                val repository = buildRepository(
+                    context = context,
+                    selectedVersionId = selectedVersion,
+                    versionEntries = versionEntries
+                )
                 val chunks = parsedReferences.map { reference ->
                     val verses = repository.getVerses(reference).map { verse ->
                         VerseUiModel(number = verse.number, text = verse.text)
                     }
                     ReferenceChunkUiModel(
                         normalizedReference = reference,
-                        version = selectedEntry?.id ?: VersionCatalogRepository.defaultVersionId,
+                        version = selectedEntry.id,
                         verses = verses
                     )
                 }
@@ -258,10 +265,32 @@ private fun deriveDefaultDisplayName(context: android.content.Context, uri: Uri)
 }
 
 private fun buildRepository(context: android.content.Context, version: VersionEntry): BibleRepository {
+    return buildRepository(
+        context = context,
+        selectedVersionId = version.id,
+        versionEntries = listOf(version)
+    )
+}
+
+private fun buildRepository(
+    context: android.content.Context,
+    selectedVersionId: String?,
+    versionEntries: List<VersionEntry>
+): BibleRepository {
+    val resolvedVersion = resolveVersionEntry(
+        selectedVersionId = selectedVersionId,
+        versionEntries = versionEntries
+    )
+
     return AssetBibleRepositoryFactory.createForVersionEntry(
         context = context,
-        entry = version
+        entry = resolvedVersion
     )
+}
+
+private fun resolveVersionEntry(selectedVersionId: String?, versionEntries: List<VersionEntry>): VersionEntry {
+    val normalizedVersionId = selectedVersionId?.trim()?.uppercase().orEmpty()
+    return versionEntries.firstOrNull { it.id == normalizedVersionId } ?: defaultVersionEntry()
 }
 
 private fun normalizeVersionOrNull(version: String, supportedVersions: List<VersionEntry>): String? {
