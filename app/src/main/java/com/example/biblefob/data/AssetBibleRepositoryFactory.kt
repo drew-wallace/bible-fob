@@ -1,7 +1,6 @@
 package com.example.biblefob.data
 
 import android.content.Context
-import java.io.File
 
 object AssetBibleRepositoryFactory {
     fun create(
@@ -70,6 +69,26 @@ object AssetBibleRepositoryFactory {
         entry: VersionEntry,
         schemaVersion: Int
     ): android.database.sqlite.SQLiteOpenHelper? {
+        return when (entry.dataSourceType) {
+            VersionDataSourceType.BUNDLED_ASSET -> createBundledAssetHelperOrNull(
+                context = context,
+                entry = entry,
+                schemaVersion = schemaVersion
+            )
+
+            VersionDataSourceType.LOCAL_FILE -> LocalFileDatabaseFactory.createOrNull(
+                context = context,
+                entry = entry,
+                schemaVersion = schemaVersion
+            )
+        }
+    }
+
+    private fun createBundledAssetHelperOrNull(
+        context: Context,
+        entry: VersionEntry,
+        schemaVersion: Int
+    ): android.database.sqlite.SQLiteOpenHelper? {
         val databaseName = "${entry.id}_bible.db"
 
         if (assetExists(context, entry.sqliteDbAssetPath)) {
@@ -81,7 +100,7 @@ object AssetBibleRepositoryFactory {
             )
         }
 
-        if (sqlDumpExists(context, entry.sqlDumpAssetPath)) {
+        if (assetExists(context, entry.sqlDumpAssetPath)) {
             return AssetSqlDumpSQLiteOpenHelper(
                 context = context,
                 sqlDumpAssetPath = entry.sqlDumpAssetPath,
@@ -100,11 +119,6 @@ object AssetBibleRepositoryFactory {
         }.getOrDefault(false)
     }
 
-    private fun sqlDumpExists(context: Context, path: String): Boolean {
-        if (path.isBlank()) return false
-        if (File(path).exists()) return true
-        return assetExists(context, path)
-    }
 }
 
 enum class BookFileNameStyle {

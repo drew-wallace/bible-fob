@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import com.example.biblefob.data.CanonicalBooks
+import com.example.biblefob.data.DataSourcePaths
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
@@ -79,7 +80,7 @@ class VersionJsonImporter(
     }
 
     private fun sqlDumpFileForVersion(versionId: String): File {
-        return File(context.filesDir, "imported_versions/${versionId}_bible.sql")
+        return DataSourcePaths.localSqlDumpFile(context.filesDir, versionId)
     }
 
     private fun escapeSql(value: String): String = value.replace("'", "''")

@@ -13,12 +13,18 @@ enum class VersionManagementPolicy {
         get() = this == USER_IMPORTED
 }
 
+enum class VersionDataSourceType {
+    BUNDLED_ASSET,
+    LOCAL_FILE
+}
+
 data class VersionEntry(
     val id: String,
     val displayName: String,
     val sqliteDbAssetPath: String,
     val sqlDumpAssetPath: String,
-    val policy: VersionManagementPolicy
+    val policy: VersionManagementPolicy,
+    val dataSourceType: VersionDataSourceType
 ) {
     companion object {
         fun fromJsonOrNull(rawJson: String): VersionEntry? = runCatching {
@@ -40,13 +46,27 @@ data class VersionEntry(
                     VersionManagementPolicy.entries.firstOrNull { candidate -> candidate.name == rawPolicy }
                 }
                 ?: VersionManagementPolicy.USER_IMPORTED
+            val dataSourceType = jsonObject
+                .optString(JSON_DATA_SOURCE_TYPE)
+                .trim()
+                .uppercase()
+                .takeIf(String::isNotBlank)
+                ?.let { rawType ->
+                    VersionDataSourceType.entries.firstOrNull { candidate -> candidate.name == rawType }
+                }
+                ?: if (policy == VersionManagementPolicy.BUNDLED) {
+                    VersionDataSourceType.BUNDLED_ASSET
+                } else {
+                    VersionDataSourceType.LOCAL_FILE
+                }
 
             return VersionEntry(
                 id = id,
                 displayName = displayName,
                 sqliteDbAssetPath = sqliteDbAssetPath,
                 sqlDumpAssetPath = sqlDumpAssetPath,
-                policy = policy
+                policy = policy,
+                dataSourceType = dataSourceType
             ).takeIf { entry ->
                 entry.id.isNotEmpty() &&
                     entry.displayName.isNotEmpty() &&
@@ -62,6 +82,7 @@ data class VersionEntry(
         .put(JSON_SQLITE_DB_ASSET_PATH, sqliteDbAssetPath)
         .put(JSON_SQL_DUMP_ASSET_PATH, sqlDumpAssetPath)
         .put(JSON_POLICY, policy.name)
+        .put(JSON_DATA_SOURCE_TYPE, dataSourceType.name)
 }
 
 private const val JSON_ID = "id"
@@ -69,3 +90,4 @@ private const val JSON_DISPLAY_NAME = "displayName"
 private const val JSON_SQLITE_DB_ASSET_PATH = "sqliteDbAssetPath"
 private const val JSON_SQL_DUMP_ASSET_PATH = "sqlDumpAssetPath"
 private const val JSON_POLICY = "policy"
+private const val JSON_DATA_SOURCE_TYPE = "dataSourceType"

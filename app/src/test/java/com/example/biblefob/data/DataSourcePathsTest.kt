@@ -17,4 +17,19 @@ class DataSourcePathsTest {
         assertEquals("1 Peter", resolveBookFileName("1 Peter", BookFileNameStyle.CANONICAL))
         assertEquals("1_peter", resolveBookFileName("1 Peter", BookFileNameStyle.SLUG))
     }
+
+    @Test
+    fun `builds local imported file paths`() {
+        val filesDir = java.io.File("/tmp/test-files")
+
+        assertEquals(
+            "/tmp/test-files/imported_versions/NET_bible.db",
+            DataSourcePaths.localSqliteDbFile(filesDir, "NET").path
+        )
+        assertEquals(
+            "/tmp/test-files/imported_versions/NET_bible.sql",
+            DataSourcePaths.localSqlDumpFile(filesDir, "NET").path
+        )
+    }
+
 }

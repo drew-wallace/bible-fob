@@ -24,6 +24,7 @@ class VersionEntryTest {
         assertEquals("WEB", parsed?.id)
         assertEquals("World English Bible", parsed?.displayName)
         assertEquals(VersionManagementPolicy.USER_IMPORTED, parsed?.policy)
+        assertEquals(VersionDataSourceType.LOCAL_FILE, parsed?.dataSourceType)
     }
 
     @Test
