@@ -5,52 +5,64 @@ import android.net.Uri
 import com.example.biblefob.data.VersionCatalogRepository
 import com.example.biblefob.data.VersionEntry
 import com.example.biblefob.data.VersionManagementPolicy
-import org.json.JSONArray
-import org.json.JSONObject
+import com.example.biblefob.data.importer.ConflictingImportException
+import com.example.biblefob.data.importer.DuplicateImportException
+import com.example.biblefob.data.importer.ImportException
+import com.example.biblefob.data.importer.VersionJsonImporter
+import kotlinx.coroutines.flow.first
 
 class ImportVersionFromJsonUseCase(
     private val context: Context,
-    private val versionCatalogRepository: VersionCatalogRepository
+    private val versionCatalogRepository: VersionCatalogRepository,
+    private val importer: VersionJsonImporter = VersionJsonImporter(context)
 ) {
     suspend operator fun invoke(uri: Uri, defaultDisplayName: String): Result<VersionEntry> {
-        val rawJson = runCatching {
-            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-        }.getOrNull() ?: return Result.failure(IllegalArgumentException("Unable to read the selected file."))
+        val entry = runCatching { buildEntry(defaultDisplayName = defaultDisplayName) }
+            .getOrElse { return Result.failure(IllegalArgumentException("Unable to import selected version.")) }
 
-        if (!isSupportedBibleJson(rawJson)) {
-            return Result.failure(IllegalArgumentException("Selected file is not valid Bible JSON."))
+        val existingEntries = versionCatalogRepository.versionEntries.first()
+        val conflictingEntry = existingEntries.firstOrNull { it.id == entry.id }
+        if (conflictingEntry != null) {
+            return Result.failure(
+                IllegalArgumentException(
+                    "A version with id ${entry.id} already exists. Rename the imported version before trying again."
+                )
+            )
         }
 
-        val entry = runCatching {
-            buildEntry(uri = uri, defaultDisplayName = defaultDisplayName)
-        }.getOrElse {
-            return Result.failure(IllegalArgumentException("Unable to import selected version."))
+        val importResult = try {
+            importer.import(uri = uri, versionId = entry.id)
+        } catch (error: DuplicateImportException) {
+            return Result.failure(IllegalArgumentException(error.message ?: "Version already imported."))
+        } catch (error: ConflictingImportException) {
+            return Result.failure(IllegalArgumentException(error.message ?: "Conflicting version import."))
+        } catch (error: ImportException) {
+            return Result.failure(IllegalArgumentException(error.message ?: "Unable to parse imported JSON."))
         }
 
-        versionCatalogRepository.upsertUserEntry(entry)
-        return Result.success(entry)
+        val importedEntry = entry.copy(
+            sqliteDbAssetPath = importResult.sqlDumpFile.absolutePath,
+            sqlDumpAssetPath = importResult.sqlDumpFile.absolutePath
+        )
+
+        versionCatalogRepository.upsertUserEntry(importedEntry)
+        return Result.success(importedEntry)
     }
 
-    private fun buildEntry(uri: Uri, defaultDisplayName: String): VersionEntry {
+    private fun buildEntry(defaultDisplayName: String): VersionEntry {
         val displayName = defaultDisplayName.trim()
         val id = displayName.toVersionId().ifBlank { "IMPORTED" }
 
         require(displayName.isNotBlank())
         require(id.isNotBlank())
 
-        val contentUriPath = uri.toString()
-
         return VersionEntry(
             id = id,
             displayName = displayName,
-            sqliteDbAssetPath = contentUriPath,
-            sqlDumpAssetPath = contentUriPath,
+            sqliteDbAssetPath = id,
+            sqlDumpAssetPath = id,
             policy = VersionManagementPolicy.USER_IMPORTED
         )
-    }
-
-    private fun isSupportedBibleJson(rawJson: String): Boolean {
-        return runCatching { JSONObject(rawJson) }.isSuccess || runCatching { JSONArray(rawJson) }.isSuccess
     }
 }
 

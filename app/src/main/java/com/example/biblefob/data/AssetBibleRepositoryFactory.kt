@@ -1,6 +1,7 @@
 package com.example.biblefob.data
 
 import android.content.Context
+import java.io.File
 
 object AssetBibleRepositoryFactory {
     fun create(
@@ -80,7 +81,7 @@ object AssetBibleRepositoryFactory {
             )
         }
 
-        if (assetExists(context, entry.sqlDumpAssetPath)) {
+        if (sqlDumpExists(context, entry.sqlDumpAssetPath)) {
             return AssetSqlDumpSQLiteOpenHelper(
                 context = context,
                 sqlDumpAssetPath = entry.sqlDumpAssetPath,
@@ -97,6 +98,12 @@ object AssetBibleRepositoryFactory {
             context.assets.open(path).use { }
             true
         }.getOrDefault(false)
+    }
+
+    private fun sqlDumpExists(context: Context, path: String): Boolean {
+        if (path.isBlank()) return false
+        if (File(path).exists()) return true
+        return assetExists(context, path)
     }
 }
 

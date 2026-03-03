@@ -3,6 +3,7 @@ package com.example.biblefob.data
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import java.io.File
 
 /**
  * Builds a local SQLite database from a bundled SQL dump asset on first launch.
@@ -20,9 +21,7 @@ class AssetSqlDumpSQLiteOpenHelper(
     private val appContext = context.applicationContext
 
     override fun onCreate(db: SQLiteDatabase) {
-        val script = appContext.assets.open(sqlDumpAssetPath)
-            .bufferedReader()
-            .use { it.readText() }
+        val script = readSqlScript()
 
         db.beginTransaction()
         try {
@@ -41,6 +40,17 @@ class AssetSqlDumpSQLiteOpenHelper(
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+
+    private fun readSqlScript(): String {
+        val file = File(sqlDumpAssetPath)
+        if (file.exists()) {
+            return file.bufferedReader().use { it.readText() }
+        }
+
+        return appContext.assets.open(sqlDumpAssetPath)
+            .bufferedReader()
+            .use { it.readText() }
+    }
 
     companion object {
         fun forVersion(
