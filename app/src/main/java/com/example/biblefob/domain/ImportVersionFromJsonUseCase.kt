@@ -5,9 +5,10 @@ import android.net.Uri
 import com.example.biblefob.data.VersionCatalogRepository
 import com.example.biblefob.data.VersionEntry
 import com.example.biblefob.data.VersionManagementPolicy
-import com.example.biblefob.data.import.DuplicateImportException
-import com.example.biblefob.data.import.ImportException
-import com.example.biblefob.data.import.VersionJsonImporter
+import com.example.biblefob.data.importer.ConflictingImportException
+import com.example.biblefob.data.importer.DuplicateImportException
+import com.example.biblefob.data.importer.ImportException
+import com.example.biblefob.data.importer.VersionJsonImporter
 import kotlinx.coroutines.flow.first
 
 class ImportVersionFromJsonUseCase(
@@ -33,6 +34,8 @@ class ImportVersionFromJsonUseCase(
             importer.import(uri = uri, versionId = entry.id)
         } catch (error: DuplicateImportException) {
             return Result.failure(IllegalArgumentException(error.message ?: "Version already imported."))
+        } catch (error: ConflictingImportException) {
+            return Result.failure(IllegalArgumentException(error.message ?: "Conflicting version import."))
         } catch (error: ImportException) {
             return Result.failure(IllegalArgumentException(error.message ?: "Unable to parse imported JSON."))
         }
