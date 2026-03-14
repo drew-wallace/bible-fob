@@ -86,6 +86,8 @@ enum class VerseDisplayMode {
 fun HomeScreen(
     parsedReferenceChunks: List<String> = emptyList(),
     uiState: HomeScreenUiState = HomeScreenUiState.Empty,
+    referenceInput: String = "",
+    onReferenceInputChange: (String) -> Unit = {},
     selectedVersion: String? = null,
     supportedVersions: List<VersionOptionUiModel> = emptyList(),
     onVersionSelected: (String) -> Unit = {},
@@ -106,6 +108,8 @@ fun HomeScreen(
                 windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
             ) {
                 SettingsDrawerContent(
+                    referenceInput = referenceInput,
+                    onReferenceInputChange = onReferenceInputChange,
                     selectedVersion = selectedVersion,
                     supportedVersions = supportedVersions,
                     onVersionSelected = onVersionSelected,
@@ -182,6 +186,8 @@ fun HomeScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsDrawerContent(
+    referenceInput: String,
+    onReferenceInputChange: (String) -> Unit,
     selectedVersion: String?,
     supportedVersions: List<VersionOptionUiModel>,
     onVersionSelected: (String) -> Unit,
@@ -207,6 +213,18 @@ private fun SettingsDrawerContent(
             .padding(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Text(
+            text = "Reference",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        TextField(
+            value = referenceInput,
+            onValueChange = onReferenceInputChange,
+            label = { Text("Scripture reference") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
         Text(
             text = "Settings",
             style = MaterialTheme.typography.titleLarge,
