@@ -12,7 +12,7 @@ class SearchQueryParser(
             return emptyList()
         }
 
-        return parseQuery(uri.rawQuery)
+        return parseSearchValue(extractSearchFromRawQuery(uri.rawQuery))
     }
 
     fun parseFromUriString(uriString: String?): List<String> {
@@ -25,20 +25,31 @@ class SearchQueryParser(
             .getOrDefault(emptyList())
     }
 
-    private fun parseQuery(rawQuery: String?): List<String> {
+    fun parseFromSearchQuery(searchQuery: String?): List<String> {
+        return parseSearchValue(searchQuery)
+    }
+
+    private fun extractSearchFromRawQuery(rawQuery: String?): String {
         if (rawQuery.isNullOrBlank()) {
-            return emptyList()
+            return ""
         }
 
-        val decodedSearch = rawQuery
+        return rawQuery
             .split('&')
             .asSequence()
             .mapNotNull(::toQueryPair)
             .firstOrNull { (key, _) -> key == SEARCH_PARAM }
             ?.second
             ?.let(::urlDecode)
-            ?.trim()
             .orEmpty()
+    }
+
+    private fun parseSearchValue(searchQuery: String?): List<String> {
+        if (searchQuery.isNullOrBlank()) {
+            return emptyList()
+        }
+
+        val decodedSearch = searchQuery.trim()
 
         if (decodedSearch.isBlank()) {
             return emptyList()

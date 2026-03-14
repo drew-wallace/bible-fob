@@ -10,6 +10,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
@@ -58,9 +59,21 @@ fun BibleFobApp(
     val versionEntries by versionCatalogRepository.versionEntries.collectAsState(
         initial = VersionCatalogRepository.builtInEntries
     )
+    val searchQueryParser = remember { SearchQueryParser() }
 
-    val parsedReferences = remember(deepLinkUriString) {
-        SearchQueryParser().parseFromUriString(deepLinkUriString)
+    val initialSearchQuery = remember(deepLinkUriString) {
+        deepLinkUriString
+            ?.let(Uri::parse)
+            ?.getQueryParameter(SEARCH_PARAM)
+            .orEmpty()
+    }
+
+    var referenceInput by rememberSaveable(deepLinkUriString) {
+        mutableStateOf(initialSearchQuery)
+    }
+
+    val parsedReferences = remember(referenceInput, searchQueryParser) {
+        searchQueryParser.parseFromSearchQuery(referenceInput)
     }
 
     val requestedVersion = remember(deepLinkUriString) {
@@ -85,13 +98,7 @@ fun BibleFobApp(
         }
     }
 
-    val hasSearchQuery = remember(deepLinkUriString) {
-        deepLinkUriString
-            ?.let(Uri::parse)
-            ?.getQueryParameter(SEARCH_PARAM)
-            ?.isNotBlank()
-            ?: false
-    }
+    val hasSearchQuery = referenceInput.isNotBlank()
 
     val supportedVersionOptions = remember(versionEntries) {
         versionEntries.map { entry ->
@@ -237,7 +244,9 @@ fun BibleFobApp(
                     }
                 },
                 versionActionMessage = versionActionMessage,
-                isVersionActionError = isVersionActionError
+                isVersionActionError = isVersionActionError,
+                referenceInput = referenceInput,
+                onReferenceInputChange = { referenceInput = it }
             )
         }
     }
