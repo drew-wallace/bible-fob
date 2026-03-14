@@ -198,4 +198,4 @@ internal fun parseBibleJsonToVerseRows(rawJson: String): List<VerseRow> {
 }
 
 private fun canonicalBookFor(name: String) =
-    CanonicalBooks.byName(name) ?: CanonicalBooks.byName(bookAliases[name])
+    CanonicalBooks.byName(name) ?: bookAliases[name]?.let(CanonicalBooks::byName)
