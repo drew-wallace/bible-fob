@@ -78,7 +78,7 @@ class SQLiteVerseDataSource(
     private fun resolveTableName(db: android.database.sqlite.SQLiteDatabase): String? {
         resolvedTableName?.let { return it }
 
-        candidateTableNames.firstOrNull { tableName -> tableExists(db, tableName) }
+        candidateTableNames.firstOrNull { tableName -> hasVerseSchema(db, tableName) }
             ?.also { resolvedTableName = it }
             ?.let { return it }
 
@@ -99,14 +99,6 @@ class SQLiteVerseDataSource(
         return discoveredTable
     }
 
-    private fun tableExists(db: android.database.sqlite.SQLiteDatabase, tableName: String): Boolean {
-        return db.rawQuery(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=? LIMIT 1",
-            arrayOf(tableName)
-        ).use { cursor ->
-            cursor.moveToFirst()
-        }
-    }
 
     private fun quoteIdentifier(identifier: String): String {
         return "\"${identifier.replace("\"", "\"\"")}\""
