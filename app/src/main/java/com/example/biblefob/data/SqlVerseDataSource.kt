@@ -25,23 +25,7 @@ class SQLiteVerseDataSource(
 
         val db = helper.readableDatabase
         val tableName = resolveTableName(db) ?: return emptyList()
-        val selection = buildString {
-            append("book_id = ? AND (")
-            append("(chapter > ? AND chapter < ?) OR ")
-            append("(chapter = ? AND verse >= ?) OR ")
-            append("(chapter = ? AND verse <= ?)")
-            append(")")
-        }
-
-        val args = arrayOf(
-            range.startBook.id.toString(),
-            range.startChapter.toString(),
-            range.endChapter.toString(),
-            range.startChapter.toString(),
-            range.startVerse.toString(),
-            range.endChapter.toString(),
-            range.endVerse.toString()
-        )
+        val (selection, args) = buildRangeSelection(range)
 
         val verses = mutableListOf<Verse>()
         db.query(
@@ -118,5 +102,32 @@ class SQLiteVerseDataSource(
         }
 
         return tableColumns.containsAll(requiredColumns)
+    }
+}
+
+internal fun buildRangeSelection(range: PassageRange): Pair<String, Array<String>> {
+    return if (range.startChapter == range.endChapter) {
+        "book_id = ? AND chapter = ? AND verse BETWEEN ? AND ?" to arrayOf(
+            range.startBook.id.toString(),
+            range.startChapter.toString(),
+            range.startVerse.toString(),
+            range.endVerse.toString()
+        )
+    } else {
+        buildString {
+            append("book_id = ? AND (")
+            append("(chapter = ? AND verse >= ?) OR ")
+            append("(chapter > ? AND chapter < ?) OR ")
+            append("(chapter = ? AND verse <= ?)")
+            append(")")
+        } to arrayOf(
+            range.startBook.id.toString(),
+            range.startChapter.toString(),
+            range.startVerse.toString(),
+            range.startChapter.toString(),
+            range.endChapter.toString(),
+            range.endChapter.toString(),
+            range.endVerse.toString()
+        )
     }
 }
