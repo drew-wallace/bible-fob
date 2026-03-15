@@ -8,14 +8,23 @@ interface SqlVerseDataSource {
 
 class SQLiteVerseDataSource(
     private val helper: SQLiteOpenHelper,
-    private val tableName: String = "verses"
+    tableNames: List<String> = listOf("verses")
 ) : SqlVerseDataSource {
+    private val candidateTableNames = tableNames
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .distinct()
+
+    @Volatile
+    private var resolvedTableName: String? = null
+
     override fun getVerses(range: PassageRange): List<Verse> {
         if (range.startBook.id != range.endBook.id) {
             return emptyList()
         }
 
         val db = helper.readableDatabase
+        val tableName = resolveTableName(db) ?: return emptyList()
         val selection = buildString {
             append("book_id = ? AND (")
             append("(chapter > ? AND chapter < ?) OR ")
@@ -64,5 +73,50 @@ class SQLiteVerseDataSource(
         }
 
         return verses
+    }
+
+    private fun resolveTableName(db: android.database.sqlite.SQLiteDatabase): String? {
+        resolvedTableName?.let { return it }
+
+        candidateTableNames.firstOrNull { tableName -> hasVerseSchema(db, tableName) }
+            ?.also { resolvedTableName = it }
+            ?.let { return it }
+
+        val discoveredTable = db.rawQuery(
+            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+            null
+        ).use { cursor ->
+            generateSequence {
+                if (cursor.moveToNext()) {
+                    cursor.getString(0)
+                } else {
+                    null
+                }
+            }.firstOrNull { tableName -> hasVerseSchema(db, tableName) }
+        }
+
+        resolvedTableName = discoveredTable
+        return discoveredTable
+    }
+
+
+    private fun quoteIdentifier(identifier: String): String {
+        return "\"${identifier.replace("\"", "\"\"")}\""
+    }
+
+    private fun hasVerseSchema(db: android.database.sqlite.SQLiteDatabase, tableName: String): Boolean {
+        val requiredColumns = setOf("book_id", "book", "chapter", "verse", "text")
+        val tableColumns = db.rawQuery("PRAGMA table_info(${quoteIdentifier(tableName)})", null).use { cursor ->
+            buildSet {
+                val columnNameIndex = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (columnNameIndex >= 0) {
+                        add(cursor.getString(columnNameIndex))
+                    }
+                }
+            }
+        }
+
+        return tableColumns.containsAll(requiredColumns)
     }
 }

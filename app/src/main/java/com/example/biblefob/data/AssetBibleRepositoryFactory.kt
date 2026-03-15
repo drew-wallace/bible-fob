@@ -54,7 +54,15 @@ object AssetBibleRepositoryFactory {
             schemaVersion = schemaVersion
         )
 
-        val sqlDataSource = helper?.let(::SQLiteVerseDataSource)
+        val sqlDataSource = helper?.let { openHelper ->
+            SQLiteVerseDataSource(
+                helper = openHelper,
+                tableNames = listOf(
+                    "verses",
+                    entry.id.lowercase()
+                )
+            )
+        }
 
         return create(
             context = context,
