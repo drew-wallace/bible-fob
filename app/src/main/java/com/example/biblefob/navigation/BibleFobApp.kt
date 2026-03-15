@@ -164,30 +164,36 @@ fun BibleFobApp(
 
             parsedReferences.isEmpty() -> HomeScreenUiState.Empty
             else -> {
-                val selectedEntry = resolveVersionEntry(
-                    selectedVersionId = selectedVersion,
-                    versionEntries = versionEntries
-                )
-                val repository = buildRepository(
-                    context = context,
-                    selectedVersionId = selectedVersion,
-                    versionEntries = versionEntries
-                )
-                val chunks = parsedReferences.map { reference ->
-                    val verses = repository.getVerses(reference).map { verse ->
-                        VerseUiModel(number = verse.number, text = verse.text)
-                    }
-                    ReferenceChunkUiModel(
-                        normalizedReference = reference,
-                        version = selectedEntry.id,
-                        verses = verses
+                runCatching {
+                    val selectedEntry = resolveVersionEntry(
+                        selectedVersionId = selectedVersion,
+                        versionEntries = versionEntries
                     )
-                }
+                    val repository = buildRepository(
+                        context = context,
+                        selectedVersionId = selectedVersion,
+                        versionEntries = versionEntries
+                    )
+                    val chunks = parsedReferences.map { reference ->
+                        val verses = repository.getVerses(reference).map { verse ->
+                            VerseUiModel(number = verse.number, text = verse.text)
+                        }
+                        ReferenceChunkUiModel(
+                            normalizedReference = reference,
+                            version = selectedEntry.id,
+                            verses = verses
+                        )
+                    }
 
-                if (chunks.all { it.verses.isEmpty() }) {
-                    HomeScreenUiState.Empty
-                } else {
-                    HomeScreenUiState.Content(chunks)
+                    if (chunks.all { it.verses.isEmpty() }) {
+                        HomeScreenUiState.Empty
+                    } else {
+                        HomeScreenUiState.Content(chunks)
+                    }
+                }.getOrElse {
+                    HomeScreenUiState.InvalidReference(
+                        message = "Unable to load verses for the requested reference(s)."
+                    )
                 }
             }
         }
