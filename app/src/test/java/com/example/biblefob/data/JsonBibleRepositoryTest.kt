@@ -79,6 +79,8 @@ class JsonBibleRepositoryTest {
         assertEquals(null, NormalizedReferenceParser.parse("John 3:5-2:10"))
     }
 
+
+
     @Test
     fun `falls back to per book loader when whole bible json is absent`() {
         val repository = JsonBibleRepository(
