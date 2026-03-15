@@ -25,11 +25,7 @@ class AssetSqlDumpSQLiteOpenHelper(
 
         db.beginTransaction()
         try {
-            script
-                .split(';')
-                .asSequence()
-                .map { it.trim() }
-                .filter { it.isNotBlank() }
+            splitSqlStatements(script)
                 .forEach { statement ->
                     db.execSQL(statement)
                 }
@@ -67,4 +63,51 @@ class AssetSqlDumpSQLiteOpenHelper(
             )
         }
     }
+}
+
+internal fun splitSqlStatements(script: String): List<String> {
+    if (script.isBlank()) {
+        return emptyList()
+    }
+
+    val statements = mutableListOf<String>()
+    val current = StringBuilder()
+    var index = 0
+    var inSingleQuotedString = false
+
+    while (index < script.length) {
+        val char = script[index]
+
+        if (char == '\'') {
+            current.append(char)
+            if (inSingleQuotedString && index + 1 < script.length && script[index + 1] == '\'') {
+                current.append(script[index + 1])
+                index += 2
+                continue
+            }
+            inSingleQuotedString = !inSingleQuotedString
+            index += 1
+            continue
+        }
+
+        if (char == ';' && !inSingleQuotedString) {
+            val statement = current.toString().trim()
+            if (statement.isNotBlank()) {
+                statements += statement
+            }
+            current.clear()
+            index += 1
+            continue
+        }
+
+        current.append(char)
+        index += 1
+    }
+
+    val trailingStatement = current.toString().trim()
+    if (trailingStatement.isNotBlank()) {
+        statements += trailingStatement
+    }
+
+    return statements
 }

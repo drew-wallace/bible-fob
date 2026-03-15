@@ -23,9 +23,8 @@ class JsonBibleRepository(
             return emptyList()
         }
 
-        runCatching { sqlDataSource?.getVerses(range).orEmpty() }
-            .getOrDefault(emptyList())
-            .takeIf { it.isNotEmpty() }
+        sqlDataSource?.getVerses(range)
+            ?.takeIf { it.isNotEmpty() }
             ?.let { return sortCanonically(it) }
 
         val verses = mutableListOf<Verse>()

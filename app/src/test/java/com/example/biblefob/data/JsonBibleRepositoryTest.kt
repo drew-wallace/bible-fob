@@ -82,31 +82,6 @@ class JsonBibleRepositoryTest {
 
 
     @Test
-    fun `falls back to json when sql data source throws`() {
-        val repository = JsonBibleRepository(
-            wholeBibleJson = """
-            {
-              "John": {
-                "3": {
-                  "16": "For God so loved the world"
-                }
-              }
-            }
-            """.trimIndent(),
-            sqlDataSource = object : SqlVerseDataSource {
-                override fun getVerses(range: PassageRange): List<Verse> {
-                    throw IllegalStateException("database unavailable")
-                }
-            }
-        )
-
-        val verses = repository.getVerses("John 3:16")
-
-        assertEquals(1, verses.size)
-        assertEquals("For God so loved the world", verses.first().text)
-    }
-
-    @Test
     fun `falls back to per book loader when whole bible json is absent`() {
         val repository = JsonBibleRepository(
             perBookJsonLoader = { book ->
