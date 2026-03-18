@@ -25,7 +25,31 @@ class SQLiteVerseDataSource(
 
         val db = helper.readableDatabase
         val tableName = resolveTableName(db) ?: return emptyList()
-        val (selection, args) = buildRangeSelection(range)
+
+        val versesByBookId = queryVerses(
+            db = db,
+            tableName = tableName,
+            selectionWithArgs = buildRangeSelection(range)
+        )
+        if (versesByBookId.isNotEmpty()) {
+            return versesByBookId
+        }
+
+        val versesByBookName = queryVerses(
+            db = db,
+            tableName = tableName,
+            selectionWithArgs = buildRangeSelectionByBookName(range)
+        )
+
+        return versesByBookName
+    }
+
+    private fun queryVerses(
+        db: android.database.sqlite.SQLiteDatabase,
+        tableName: String,
+        selectionWithArgs: Pair<String, Array<String>>
+    ): List<Verse> {
+        val (selection, args) = selectionWithArgs
 
         val verses = mutableListOf<Verse>()
         db.query(
@@ -103,6 +127,49 @@ class SQLiteVerseDataSource(
 
         return tableColumns.containsAll(requiredColumns)
     }
+}
+
+internal fun buildRangeSelectionByBookName(range: PassageRange): Pair<String, Array<String>> {
+    val canonicalBookName = range.startBook.name
+    val aliasNames = canonicalBookName.aliasBookNames()
+    val placeholders = List(aliasNames.size) { "?" }.joinToString(", ")
+    val bookNameClause = "LOWER(book) IN ($placeholders)"
+    val bookNameArgs = aliasNames.map { it.lowercase() }
+
+    return if (range.startChapter == range.endChapter) {
+        "$bookNameClause AND chapter = ? AND verse BETWEEN ? AND ?" to
+            (bookNameArgs + listOf(
+                range.startChapter.toString(),
+                range.startVerse.toString(),
+                range.endVerse.toString()
+            )).toTypedArray()
+    } else {
+        buildString {
+            append(bookNameClause)
+            append(" AND (")
+            append("(chapter = ? AND verse >= ?) OR ")
+            append("(chapter > ? AND chapter < ?) OR ")
+            append("(chapter = ? AND verse <= ?)")
+            append(")")
+        } to (bookNameArgs + listOf(
+            range.startChapter.toString(),
+            range.startVerse.toString(),
+            range.startChapter.toString(),
+            range.endChapter.toString(),
+            range.endChapter.toString(),
+            range.endVerse.toString()
+        )).toTypedArray()
+    }
+}
+
+private fun String.aliasBookNames(): List<String> {
+    val aliases = when (this) {
+        "Psalms" -> listOf("Psalm")
+        "Song of Songs" -> listOf("Song of Solomon")
+        else -> emptyList()
+    }
+
+    return listOf(this) + aliases
 }
 
 internal fun buildRangeSelection(range: PassageRange): Pair<String, Array<String>> {

@@ -43,4 +43,43 @@ class SqlVerseDataSourceTest {
         )
         assertArrayEquals(arrayOf("40", "1", "20", "1", "2", "2", "5"), args)
     }
+
+    @Test
+    fun `buildRangeSelectionByBookName includes aliases for Psalms`() {
+        val psalms = Book(id = 19, name = "Psalms")
+        val range = PassageRange(
+            startBook = psalms,
+            startChapter = 23,
+            startVerse = 1,
+            endBook = psalms,
+            endChapter = 23,
+            endVerse = 6
+        )
+
+        val (selection, args) = buildRangeSelectionByBookName(range)
+
+        assertEquals("LOWER(book) IN (?, ?) AND chapter = ? AND verse BETWEEN ? AND ?", selection)
+        assertArrayEquals(arrayOf("psalms", "psalm", "23", "1", "6"), args)
+    }
+
+    @Test
+    fun `buildRangeSelectionByBookName spans chapter ranges with canonical book name`() {
+        val john = Book(id = 43, name = "John")
+        val range = PassageRange(
+            startBook = john,
+            startChapter = 3,
+            startVerse = 16,
+            endBook = john,
+            endChapter = 4,
+            endVerse = 3
+        )
+
+        val (selection, args) = buildRangeSelectionByBookName(range)
+
+        assertEquals(
+            "LOWER(book) IN (?) AND ((chapter = ? AND verse >= ?) OR (chapter > ? AND chapter < ?) OR (chapter = ? AND verse <= ?))",
+            selection
+        )
+        assertArrayEquals(arrayOf("john", "3", "16", "3", "4", "4", "3"), args)
+    }
 }
