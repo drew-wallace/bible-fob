@@ -308,9 +308,22 @@ private fun resolveVersionEntry(selectedVersionId: String?, versionEntries: List
     return versionEntries.firstOrNull { it.id == normalizedVersionId } ?: defaultVersionEntry()
 }
 
-private fun normalizeVersionOrNull(version: String, supportedVersions: List<VersionEntry>): String? {
-    val normalizedVersion = version.trim().uppercase()
-    return supportedVersions.firstOrNull { it.id == normalizedVersion }?.id
+internal fun normalizeVersionOrNull(version: String, supportedVersions: List<VersionEntry>): String? {
+    val normalizedVersion = version.toVersionLookupKey()
+    if (normalizedVersion.isBlank()) return null
+
+    return supportedVersions
+        .firstOrNull { entry ->
+            entry.id.toVersionLookupKey() == normalizedVersion ||
+                entry.displayName.toVersionLookupKey() == normalizedVersion
+        }
+        ?.id
+}
+
+internal fun String.toVersionLookupKey(): String {
+    return trim()
+        .uppercase()
+        .replace(Regex("[^A-Z0-9]+"), "")
 }
 
 private fun defaultVersionEntry(): VersionEntry {
