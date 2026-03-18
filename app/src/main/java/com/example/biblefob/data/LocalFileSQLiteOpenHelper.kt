@@ -65,12 +65,7 @@ class LocalSqlDumpSQLiteOpenHelper(
 
         db.beginTransaction()
         try {
-            script
-                .split(';')
-                .asSequence()
-                .map(String::trim)
-                .filter(String::isNotBlank)
-                .forEach(db::execSQL)
+            splitSqlStatements(script).forEach(db::execSQL)
 
             db.setTransactionSuccessful()
         } finally {
