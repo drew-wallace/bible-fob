@@ -308,11 +308,6 @@ private fun resolveVersionEntry(selectedVersionId: String?, versionEntries: List
     return versionEntries.firstOrNull { it.id == normalizedVersionId } ?: defaultVersionEntry()
 }
 
-private fun normalizeVersionOrNull(version: String, supportedVersions: List<VersionEntry>): String? {
-    val normalizedVersion = version.trim().uppercase()
-    return supportedVersions.firstOrNull { it.id == normalizedVersion }?.id
-}
-
 private fun defaultVersionEntry(): VersionEntry {
     return VersionCatalogRepository.builtInEntries
         .firstOrNull { it.id == VersionCatalogRepository.defaultVersionId }
