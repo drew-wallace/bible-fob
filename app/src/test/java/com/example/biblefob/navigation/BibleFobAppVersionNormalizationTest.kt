@@ -10,14 +10,14 @@ import org.junit.Test
 class BibleFobAppVersionNormalizationTest {
 
     @Test
-    fun `normalizeVersionOrNull matches url-safe display names`() {
+    fun `normalizeVersionOrNull matches url-safe ids`() {
         val supportedVersions = listOf(
             importedEntry(id = "NET_BIBLE", displayName = "NET Bible"),
-            importedEntry(id = "LSB95", displayName = "Legacy Standard Bible 95")
+            importedEntry(id = "LSB_95", displayName = "Legacy Standard Bible 95")
         )
 
         assertEquals("NET_BIBLE", normalizeVersionOrNull("net-bible", supportedVersions))
-        assertEquals("LSB95", normalizeVersionOrNull("legacy standard bible 95", supportedVersions))
+        assertEquals("LSB_95", normalizeVersionOrNull("lsb95", supportedVersions))
     }
 
     @Test
