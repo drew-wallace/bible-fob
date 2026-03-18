@@ -174,9 +174,6 @@ internal fun parseBibleJsonToVerseRows(rawJson: String): List<VerseRow> {
                 }
 
                 val text = rawText.trim()
-                if (text.isBlank()) {
-                    throw ImportException("$bookName $chapter:$verse has blank verse text.")
-                }
 
                 val deDupKey = "${canonicalBook.id}-$chapter-$verse"
                 if (!seenVerseKeys.add(deDupKey)) {

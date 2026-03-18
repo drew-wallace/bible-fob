@@ -26,6 +26,25 @@ class VersionJsonImporterParserTest {
         assertEquals("Psalms", rows.first().book)
     }
 
+
+    @Test
+    fun `accepts blank verse text`() {
+        val rawJson = """
+            {
+              "Matthew": {
+                "17": {
+                  "21": "   "
+                }
+              }
+            }
+        """.trimIndent()
+
+        val rows = parseBibleJsonToVerseRows(rawJson)
+
+        assertEquals(1, rows.size)
+        assertEquals("", rows.first().text)
+    }
+
     @Test
     fun `rejects non string verse text`() {
         val rawJson = """
