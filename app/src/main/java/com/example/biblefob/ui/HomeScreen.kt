@@ -96,6 +96,8 @@ fun HomeScreen(
     onDeleteVersion: (String) -> Unit = {},
     versionActionMessage: String? = null,
     isVersionActionError: Boolean = false,
+    keepScreenOn: Boolean = false,
+    onKeepScreenOnChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -119,7 +121,9 @@ fun HomeScreen(
                     versionActionMessage = versionActionMessage,
                     isVersionActionError = isVersionActionError,
                     verseDisplayMode = verseDisplayMode,
-                    onVerseDisplayModeChange = { verseDisplayMode = it }
+                    onVerseDisplayModeChange = { verseDisplayMode = it },
+                    keepScreenOn = keepScreenOn,
+                    onKeepScreenOnChange = onKeepScreenOnChange
                 )
             }
         },
@@ -197,7 +201,9 @@ private fun SettingsDrawerContent(
     versionActionMessage: String?,
     isVersionActionError: Boolean,
     verseDisplayMode: VerseDisplayMode,
-    onVerseDisplayModeChange: (VerseDisplayMode) -> Unit
+    onVerseDisplayModeChange: (VerseDisplayMode) -> Unit,
+    keepScreenOn: Boolean,
+    onKeepScreenOnChange: (Boolean) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     var editingVersionId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -370,6 +376,18 @@ private fun SettingsDrawerContent(
                         if (isChecked) VerseDisplayMode.LINE_BY_LINE else VerseDisplayMode.CONCATENATED
                     )
                 }
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "Keep screen on while reading")
+            Switch(
+                checked = keepScreenOn,
+                onCheckedChange = onKeepScreenOnChange
             )
         }
     }

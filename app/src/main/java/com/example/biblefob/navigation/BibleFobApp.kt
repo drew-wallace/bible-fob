@@ -6,10 +6,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
@@ -36,7 +36,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun BibleFobApp(
-    deepLinkUriString: String? = null
+    deepLinkUriString: String? = null,
+    onKeepScreenOnChange: (Boolean) -> Unit = {}
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
@@ -87,6 +88,11 @@ fun BibleFobApp(
 
     var selectedVersion by remember(requestedVersion) {
         mutableStateOf<String?>(null)
+    }
+    var keepScreenOn by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(keepScreenOn) {
+        onKeepScreenOnChange(keepScreenOn)
     }
 
     LaunchedEffect(requestedVersion, versionEntries) {
@@ -252,7 +258,9 @@ fun BibleFobApp(
                 versionActionMessage = versionActionMessage,
                 isVersionActionError = isVersionActionError,
                 referenceInput = referenceInput,
-                onReferenceInputChange = { referenceInput = it }
+                onReferenceInputChange = { referenceInput = it },
+                keepScreenOn = keepScreenOn,
+                onKeepScreenOnChange = { keepScreenOn = it }
             )
         }
     }
