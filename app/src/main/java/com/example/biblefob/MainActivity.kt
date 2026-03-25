@@ -3,6 +3,7 @@ package com.example.biblefob
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
@@ -23,7 +24,10 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             BibleFobTheme {
-                BibleFobApp(deepLinkUriString = deepLinkUriString)
+                BibleFobApp(
+                    deepLinkUriString = deepLinkUriString,
+                    onKeepScreenOnChange = ::setKeepScreenOn
+                )
             }
         }
     }
@@ -75,6 +79,14 @@ class MainActivity : ComponentActivity() {
 
         if (externalBrowserActivity != null) {
             startActivity(browserIntent)
+        }
+    }
+
+    private fun setKeepScreenOn(keepScreenOn: Boolean) {
+        if (keepScreenOn) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
 }
