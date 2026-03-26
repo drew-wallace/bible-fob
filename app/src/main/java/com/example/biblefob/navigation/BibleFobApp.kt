@@ -5,15 +5,17 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -36,8 +38,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun BibleFobApp(
-    deepLinkUriString: String? = null,
-    onKeepScreenOnChange: (Boolean) -> Unit = {}
+    deepLinkUriString: String? = null
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
@@ -90,9 +91,14 @@ fun BibleFobApp(
         mutableStateOf<String?>(null)
     }
     var keepScreenOn by rememberSaveable { mutableStateOf(false) }
+    val view = LocalView.current
 
-    LaunchedEffect(keepScreenOn) {
-        onKeepScreenOnChange(keepScreenOn)
+    DisposableEffect(view, keepScreenOn) {
+        val previousValue = view.keepScreenOn
+        view.keepScreenOn = keepScreenOn
+        onDispose {
+            view.keepScreenOn = previousValue
+        }
     }
 
     LaunchedEffect(requestedVersion, versionEntries) {
